@@ -6,150 +6,986 @@
     <title>鳳梨訂購登記</title>
     <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
-        :root { --primary-color: #2D6A4F; --bg-color: #F0F4F2; }
-        body { font-family: -apple-system, sans-serif; background-color: var(--bg-color); padding: 15px; color: #333; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
-        h2 { color: var(--primary-color); text-align: center; margin-top: 0; }
-        .section { display: none; margin-bottom: 20px; }
-        .active { display: block; }
-        
-        label { display: block; margin: 10px 0 5px; font-weight: bold; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
-        button { width: 100%; padding: 15px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        button:disabled { background-color: #ccc; }
-        .loading-overlay { text-align: center; padding: 50px 0; }
-    </style>
+  /* ── 設計語言：南台灣農場手感，溫暖黃綠 ── */
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+ 
+  :root {
+    --green-dark:   #1B4332;
+    --green-mid:    #2D6A4F;
+    --green-light:  #52B788;
+    --gold:         #F4A228;
+    --gold-light:   #FDE68A;
+    --cream:        #FFFBF0;
+    --brown-light:  #F5ECD7;
+    --text-main:    #1A1A1A;
+    --text-muted:   #6B6B6B;
+    --radius:       16px;
+    --shadow:       0 4px 24px rgba(27,67,50,0.10);
+  }
+ 
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+ 
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--cream);
+    color: var(--text-main);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+ 
+  /* ── Header ── */
+  .header {
+    background: var(--green-dark);
+    padding: 20px 20px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 20px;
+    background: var(--cream);
+    border-radius: 20px 20px 0 0;
+  }
+  .header-inner { position: relative; z-index: 1; }
+  .logo {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+  }
+  .logo span { color: var(--gold); }
+  .header-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+ 
+  /* ── 進度條 ── */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 24px 24px 8px;
+  }
+  .step-dot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    z-index: 1;
+  }
+  .step-circle {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--brown-light);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #D9C9A8;
+    transition: all 0.3s ease;
+  }
+  .step-circle.active {
+    background: var(--green-mid);
+    color: #fff;
+    border-color: var(--green-mid);
+    box-shadow: 0 0 0 4px rgba(45,106,79,0.15);
+  }
+  .step-circle.done {
+    background: var(--green-light);
+    color: #fff;
+    border-color: var(--green-light);
+  }
+  .step-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .step-label.active { color: var(--green-dark); font-weight: 700; }
+  .step-line {
+    width: 48px; height: 2px;
+    background: #D9C9A8;
+    margin-bottom: 20px;
+    transition: background 0.3s;
+  }
+  .step-line.done { background: var(--green-light); }
+ 
+  /* ── 卡片容器 ── */
+  .card {
+    background: #fff;
+    border-radius: var(--radius);
+    margin: 8px 16px;
+    padding: 24px 20px;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--green-dark);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    display: block;
+    width: 4px; height: 20px;
+    background: var(--gold);
+    border-radius: 2px;
+  }
+ 
+  /* ── 商品選擇卡片 ── */
+  .product-grid { display: flex; flex-direction: column; gap: 12px; }
+  .product-card {
+    border: 2px solid #E8DECE;
+    border-radius: 12px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #fff;
+  }
+  .product-card:active { transform: scale(0.98); }
+  .product-card.selected {
+    border-color: var(--green-mid);
+    background: rgba(45,106,79,0.04);
+  }
+  .product-card.selected .product-check { opacity: 1; transform: scale(1); }
+  .product-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .product-icon.green { background: rgba(82,183,136,0.15); }
+  .product-icon.gold  { background: rgba(244,162,40,0.15); }
+  .product-icon.brown { background: rgba(165,110,60,0.12); }
+  .product-info { flex: 1; }
+  .product-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-main);
+  }
+  .product-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .product-check {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--green-mid);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+ 
+  /* ── 規格選擇 ── */
+  .spec-section { margin-bottom: 20px; }
+  .spec-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .spec-grid { display: flex; flex-direction: column; gap: 8px; }
+  .spec-item {
+    border: 2px solid #E8DECE;
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .spec-item:active { transform: scale(0.98); }
+  .spec-item.selected {
+    border-color: var(--green-mid);
+    background: rgba(45,106,79,0.04);
+  }
+  .spec-name { font-size: 14px; font-weight: 500; }
+  .spec-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--green-mid);
+  }
+ 
+  /* ── 數量選擇 ── */
+  .qty-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 2px solid #E8DECE;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-top: 8px;
+  }
+  .qty-label { font-size: 14px; font-weight: 500; }
+  .qty-ctrl { display: flex; align-items: center; gap: 16px; }
+  .qty-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--green-mid);
+    background: #fff;
+    color: var(--green-mid);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .qty-btn:active { background: var(--green-mid); color: #fff; transform: scale(0.92); }
+  .qty-num { font-size: 18px; font-weight: 700; min-width: 28px; text-align: center; }
+ 
+  /* ── 配送方式 ── */
+  .delivery-row { display: flex; gap: 10px; }
+  .delivery-btn {
+    flex: 1;
+    border: 2px solid #E8DECE;
+    border-radius: 10px;
+    padding: 14px 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    background: #fff;
+  }
+  .delivery-btn.selected {
+    border-color: var(--green-mid);
+    background: rgba(45,106,79,0.04);
+  }
+  .delivery-icon { font-size: 22px; margin-bottom: 4px; }
+  .delivery-name { font-size: 13px; font-weight: 700; }
+  .delivery-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+ 
+  /* ── 輸入欄 ── */
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .field input, .field textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #E8DECE;
+    border-radius: 10px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    color: var(--text-main);
+    background: #FAFAF7;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .field input:focus, .field textarea:focus {
+    border-color: var(--green-mid);
+    background: #fff;
+  }
+  .field textarea { resize: none; height: 72px; line-height: 1.5; }
+ 
+  /* ── 摘要區 ── */
+  .summary-box {
+    background: var(--brown-light);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 4px;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    font-size: 14px;
+    gap: 8px;
+  }
+  .summary-row:last-child { margin-bottom: 0; }
+  .summary-key { color: var(--text-muted); flex-shrink: 0; }
+  .summary-val { font-weight: 700; text-align: right; }
+  .total-row {
+    border-top: 1px dashed #C9B890;
+    padding-top: 12px;
+    margin-top: 12px;
+  }
+  .total-row .summary-key { font-weight: 700; color: var(--text-main); }
+  .total-row .summary-val { font-size: 18px; color: var(--green-dark); }
+  .note-box {
+    background: rgba(244,162,40,0.10);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+ 
+  /* ── 按鈕 ── */
+  .btn-row { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-back {
+    flex: 0 0 80px;
+    padding: 14px;
+    border-radius: 12px;
+    border: 2px solid #D9C9A8;
+    background: #fff;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-back:active { background: #F0EAD8; }
+  .btn-next {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: var(--green-mid);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+  .btn-next:active { background: var(--green-dark); transform: scale(0.98); }
+  .btn-next.gold { background: var(--gold); color: var(--green-dark); }
+  .btn-next:disabled { background: #C8C8C8; cursor: not-allowed; transform: none; }
+ 
+  /* ── 登記頁 ── */
+  .register-hero {
+    text-align: center;
+    padding: 8px 0 20px;
+  }
+  .register-hero .pineapple { font-size: 52px; margin-bottom: 10px; }
+  .register-hero h2 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 20px;
+    color: var(--green-dark);
+    margin-bottom: 8px;
+  }
+  .register-hero p { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+ 
+  /* ── 成功頁 ── */
+  #page-success {
+    text-align: center;
+    padding: 40px 24px;
+  }
+  .success-icon {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(82,183,136,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    margin: 0 auto 20px;
+  }
+  #page-success h2 {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 22px;
+    color: var(--green-dark);
+    margin-bottom: 10px;
+  }
+  #page-success p { font-size: 14px; color: var(--text-muted); line-height: 1.7; }
+  .close-btn {
+    margin-top: 32px;
+    padding: 14px 40px;
+    border-radius: 12px;
+    border: none;
+    background: var(--green-mid);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    letter-spacing: 1px;
+  }
+ 
+  /* ── Loading ── */
+  #loading {
+    position: fixed; inset: 0;
+    background: var(--cream);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .loading-pineapple { font-size: 48px; animation: bounce 1s ease-in-out infinite; }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+  .loading-text {
+    margin-top: 16px;
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+ 
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: var(--green-dark);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+    z-index: 200;
+  }
+  .toast.show { opacity: 1; }
+ 
+  /* ── page visibility ── */
+  .page { display: none; }
+  .page.active { display: block; }
+ 
+  /* ── 小細節 ── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #E8DECE, transparent);
+    margin: 8px 0 16px;
+  }
+  .chip {
+    display: inline-block;
+    background: var(--gold-light);
+    color: var(--green-dark);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-left: 6px;
+  }
+</style>
 </head>
 <body>
-
-<div class="card">
-    <h2>🍍 阿閎鳳梨訂購</h2>
-
-    <div id="loading" class="loading-overlay">
-        <p>系統連線中，請稍候...</p>
-    </div>
-
-    <div id="registerSection" class="section">
-        <p style="text-align: center; color: #666;">👋 您好！首次訂購請先登記資料</p>
-        <label>您的姓名</label>
-        <input type="text" id="regName" placeholder="例如：王小明">
-        <label>電話號碼</label>
-        <input type="tel" id="regPhone" placeholder="例如：0912345678">
-        <button onclick="nextStep()">下一步：開始訂購</button>
-    </div>
-
-    <div id="orderSection" class="section">
-        <p id="welcomeMsg" style="margin-bottom: 15px;"></p>
-        
-        <label>選擇產品</label>
-        <select id="productType">
-            <option value="少量自取">🍍 少量訂購（自取 1斤$30）</option>
-            <option value="箱購宅配">📦 箱購送禮（宅配 含運）</option>
-            <option value="鳳梨豆豉醬">🫙 鳳梨豆豉醬（限量）</option>
-        </select>
-
-        <label>訂購數量</label>
-        <input type="text" id="orderQty" placeholder="例如：3隻 / 1箱 / 2罐">
-
-        <label>收件地址 / 取貨備註</label>
-        <textarea id="orderAddress" rows="3" placeholder="請輸入地址，若自取請寫「自取」"></textarea>
-
-        <button id="submitBtn" onclick="submitFinalOrder()">確認送出訂單</button>
-    </div>
+ 
+<!-- Loading -->
+<div id="loading">
+  <div class="loading-pineapple">🍍</div>
+  <div class="loading-text">載入中…</div>
 </div>
-
+ 
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+ 
+<!-- Header -->
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">阿閎<span>鳳梨</span></div>
+    <div class="header-sub"> 產地新鮮現摘</div>
+  </div>
+</div>
+ 
+<!-- ========== 登記頁 ========== -->
+<div id="page-register" class="page">
+  <div class="card" style="margin-top:20px">
+    <div class="register-hero">
+      <div class="pineapple">🍍</div>
+      <h2>歡迎加入！</h2>
+      <p>第一次訂購請登記您的基本資料<br>之後訂購不需重複填寫</p>
+    </div>
+    <div class="divider"></div>
+    <div class="field">
+      <label>姓名</label>
+      <input type="text" id="reg-name" placeholder="請輸入您的姓名" inputmode="text">
+    </div>
+    <div class="field">
+      <label>電話</label>
+      <input type="tel" id="reg-phone" placeholder="09xxxxxxxx" inputmode="numeric">
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn-next" onclick="submitRegister()">完成登記，開始訂購 →</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- ========== 訂購 Step 1：選商品 ========== -->
+<div id="page-step1" class="page">
+  <div class="progress-wrap">
+    <div class="step-dot">
+      <div class="step-circle active" id="sc1">1</div>
+      <div class="step-label active">選商品</div>
+    </div>
+    <div class="step-line" id="sl1"></div>
+    <div class="step-dot">
+      <div class="step-circle" id="sc2">2</div>
+      <div class="step-label">規格數量</div>
+    </div>
+    <div class="step-line" id="sl2"></div>
+    <div class="step-dot">
+      <div class="step-circle" id="sc3">3</div>
+      <div class="step-label">確認送出</div>
+    </div>
+  </div>
+ 
+  <div class="card">
+    <div class="card-title">選擇商品種類</div>
+    <div class="product-grid">
+      <div class="product-card" id="prod-small" onclick="selectProduct('small')">
+        <div class="product-icon green">🍍</div>
+        <div class="product-info">
+          <div class="product-name">少量訂購</div>
+          <div class="product-desc">自取・3 或 5 台斤</div>
+        </div>
+        <div class="product-check">✓</div>
+      </div>
+      <div class="product-card" id="prod-box" onclick="selectProduct('box')">
+        <div class="product-icon gold">📦</div>
+        <div class="product-info">
+          <div class="product-name">箱購送禮 <span class="chip">宅配</span></div>
+          <div class="product-desc">6 台斤禮盒 或 20 台斤整箱</div>
+        </div>
+        <div class="product-check">✓</div>
+      </div>
+      <div class="product-card" id="prod-sauce" onclick="selectProduct('sauce')">
+        <div class="product-icon brown">🫙</div>
+        <div class="product-info">
+          <div class="product-name">鳳梨豆豉醬 <span class="chip">限量</span></div>
+          <div class="product-desc">200g 或 400g・每週限 50 罐</div>
+        </div>
+        <div class="product-check">✓</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-next" onclick="goStep2()">下一步</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- ========== 訂購 Step 2：規格數量 ========== -->
+<div id="page-step2" class="page">
+  <div class="progress-wrap">
+    <div class="step-dot">
+      <div class="step-circle done">✓</div>
+      <div class="step-label">選商品</div>
+    </div>
+    <div class="step-line done"></div>
+    <div class="step-dot">
+      <div class="step-circle active">2</div>
+      <div class="step-label active">規格數量</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-dot">
+      <div class="step-circle">3</div>
+      <div class="step-label">確認送出</div>
+    </div>
+  </div>
+ 
+  <div class="card">
+    <div class="card-title" id="step2-title">選擇規格</div>
+ 
+    <!-- 規格選項（依商品動態產生） -->
+    <div class="spec-section">
+      <div class="spec-title">規格</div>
+      <div class="spec-grid" id="spec-list"></div>
+    </div>
+ 
+    <!-- 數量 -->
+    <div class="divider"></div>
+    <div class="spec-title">數量</div>
+    <div class="qty-row">
+      <span class="qty-label">訂購箱數／份數</span>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+        <span class="qty-num" id="qty-display">1</span>
+        <button class="qty-btn" onclick="changeQty(1)">+</button>
+      </div>
+    </div>
+ 
+    <!-- 配送（箱購才顯示） -->
+    <div id="delivery-section" style="display:none">
+      <div class="divider"></div>
+      <div class="spec-title" style="margin-bottom:10px">配送方式</div>
+      <div class="delivery-row">
+        <div class="delivery-btn selected" id="del-home" onclick="selectDelivery('home')">
+          <div class="delivery-icon">🚚</div>
+          <div class="delivery-name">宅配到府</div>
+          <div class="delivery-sub">3 個工作天</div>
+        </div>
+        <div class="delivery-btn" id="del-pickup" onclick="selectDelivery('pickup')">
+          <div class="delivery-icon">🏪</div>
+          <div class="delivery-name">自取</div>
+          <div class="delivery-sub">來電確認地點</div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- 收件資料（宅配才顯示） -->
+    <div id="shipping-section" style="display:none">
+      <div class="divider"></div>
+      <div class="card-title" style="margin-bottom:16px;margin-top:4px">收件資料</div>
+      <div class="field">
+        <label>收件人姓名</label>
+        <input type="text" id="recv-name" placeholder="請輸入收件人姓名">
+      </div>
+      <div class="field">
+        <label>收件人電話</label>
+        <input type="tel" id="recv-phone" placeholder="09xxxxxxxx" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>收件地址</label>
+        <textarea id="recv-addr" placeholder="縣市 + 鄉鎮區 + 路街 + 號"></textarea>
+      </div>
+    </div>
+ 
+    <div class="btn-row">
+      <button class="btn-back" onclick="showStep(1)">← 返回</button>
+      <button class="btn-next" onclick="goStep3()">下一步</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- ========== 訂購 Step 3：確認送出 ========== -->
+<div id="page-step3" class="page">
+  <div class="progress-wrap">
+    <div class="step-dot">
+      <div class="step-circle done">✓</div>
+      <div class="step-label">選商品</div>
+    </div>
+    <div class="step-line done"></div>
+    <div class="step-dot">
+      <div class="step-circle done">✓</div>
+      <div class="step-label active">規格數量</div>
+    </div>
+    <div class="step-line done"></div>
+    <div class="step-dot">
+      <div class="step-circle active">3</div>
+      <div class="step-label active">確認送出</div>
+    </div>
+  </div>
+ 
+  <div class="card">
+    <div class="card-title">訂單確認</div>
+    <div class="summary-box" id="summary-content"></div>
+    <div class="note-box" id="summary-note"></div>
+    <div class="btn-row">
+      <button class="btn-back" onclick="showStep(2)">← 修改</button>
+      <button class="btn-next gold" onclick="submitOrder()">確認送出 🍍</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- ========== 成功頁 ========== -->
+<div id="page-success" class="page">
+  <div class="success-icon">✅</div>
+  <h2>訂單已送出！</h2>
+  <p>我們已收到您的訂購需求<br>阿閎會盡快與您確認<br><br>預計 3 個工作天出貨 🚚</p>
+  <button class="close-btn" onclick="closeLiff()">關閉視窗</button>
+</div>
+ 
 <script>
-const myLiffId = "您的_LIFF_ID"; 
-const gasUrl = "您的_GAS_WEB_APP_URL"; // 務必使用部署後的 /exec 網址
-
-let currentUser = null;
-
-window.onload = async function() {
-    await liff.init({ liffId: myLiffId });
-    if (!liff.isLoggedIn()) {
-        liff.login();
-        return;
-    }
-    
-    const userId = liff.getContext().userId;
-    checkUserStatus(userId);
+// =============================================
+// 設定
+// =============================================
+const LIFF_ID = 'YOUR_LIFF_ID'; // ← 填入你的 LIFF ID
+ 
+// =============================================
+// 商品資料
+// =============================================
+const PRODUCTS = {
+  small: {
+    name: '少量訂購（自取）',
+    icon: '🍍',
+    specs: [
+      { id: 's1', label: '金鑽鳳梨 1斤', price: 30 }
+    ],
+    delivery: false,
+    note: '自取,付款方式：現金'
+  },
+  box: {
+    name: '箱購送禮',
+    icon: '📦',
+    specs: [
+      { id: 'b2', label: '整箱 8隻',  price:  }
+    ],
+    delivery: true,
+    note: '出貨通知後約3個工作天到貨'
+  },
+  sauce: {
+    name: '鳳梨豆豉醬（限量）',
+    icon: '🫙',
+    specs: [
+      { id: 'sc1', label: '小罐 g', price:  },
+      { id: 'sc2', label: '大罐 g', price:  }
+    ],
+    delivery: false,
+    note: '限量，售完為止・需自取'
+  }
 };
-
-// 檢查使用者是否已登記
-async function checkUserStatus(userId) {
-    try {
-        const response = await fetch(`${gasUrl}?action=checkUser&userId=${userId}`);
-        const result = await response.json();
-        
-        document.getElementById('loading').style.display = 'none';
-        
-        if (result.exists) {
-            // 已登記，直接進入訂購
-            currentUser = result.user;
-            showOrderSection();
-        } else {
-            // 未登記，顯示登記頁面
-            document.getElementById('registerSection').classList.add('active');
-        }
-    } catch (e) {
-        alert("連線失敗，請稍後再試");
+ 
+// =============================================
+// 狀態
+// =============================================
+let state = {
+  userId:       '',
+  userName:     '',
+  userPhone:    '',
+  isNewUser:    false,
+  productType:  '',   // small / box / sauce
+  specId:       '',
+  qty:          1,
+  delivery:     'home',  // home / pickup
+  recvName:     '',
+  recvPhone:    '',
+  recvAddr:     ''
+};
+ 
+// =============================================
+// LIFF 初始化
+// =============================================
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+ 
+    const profile   = await liff.getProfile();
+    state.userId    = profile.userId;
+ 
+    // 查詢是否已註冊（透過 GAS Web App）
+    const GAS_URL = 'YOUR_GAS_WEBAPP_URL'; // ← 填入你的 GAS 部署 URL
+    const res  = await fetch(GAS_URL + '?action=getUser&userId=' + encodeURIComponent(state.userId));
+    const data = await res.json();
+ 
+    document.getElementById('loading').style.display = 'none';
+ 
+    if (data.found) {
+      state.userName  = data.name;
+      state.userPhone = data.phone;
+      state.isNewUser = false;
+      showStep(1);
+    } else {
+      state.isNewUser = true;
+      showPage('page-register');
     }
+  } catch (err) {
+    console.error(err);
+    document.getElementById('loading').style.display = 'none';
+    showToast('載入失敗，請重新開啟');
+  }
 }
-
-function showOrderSection() {
-    document.getElementById('registerSection').classList.remove('active');
-    document.getElementById('orderSection').classList.add('active');
-    document.getElementById('welcomeMsg').innerHTML = `<b>${currentUser.name}</b> 您好，歡迎訂購：`;
+ 
+// =============================================
+// 頁面切換
+// =============================================
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
 }
-
-// 首次登記過場
-function nextStep() {
-    const name = document.getElementById('regName').value.trim();
-    const phone = document.getElementById('regPhone').value.trim();
-    if (!name || !phone) return alert("請填寫姓名與電話");
-    
-    currentUser = { name, phone };
-    showOrderSection();
+ 
+function showStep(n) {
+  showPage('page-step' + n);
 }
-
-// 最終送出訂單
-async function submitFinalOrder() {
-    const product = document.getElementById('productType').value;
-    const qty = document.getElementById('orderQty').value.trim();
-    const address = document.getElementById('orderAddress').value.trim();
-    const userId = liff.getContext().userId;
-
-    if (!qty || !address) return alert("請填寫數量與地址");
-
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.innerText = "傳送中...";
-
-    try {
-        const payload = {
-            action: "createOrder",
-            userId: userId,
-            name: currentUser.name,
-            phone: currentUser.phone,
-            item: `${product} (${qty})`,
-            address: address
-        };
-
-        const response = await fetch(gasUrl, {
-            method: "POST",
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            alert("訂單已成功送出！");
-            liff.closeWindow();
-        }
-    } catch (e) {
-        alert("送出失敗，請檢查網路");
-        btn.disabled = false;
-        btn.innerText = "確認送出訂單";
-    }
+ 
+// =============================================
+// 登記
+// =============================================
+function submitRegister() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const phone = document.getElementById('reg-phone').value.trim();
+  if (!name)            { showToast('請輸入姓名'); return; }
+  if (!/^09\d{8}$/.test(phone)) { showToast('請輸入正確電話格式'); return; }
+  state.userName  = name;
+  state.userPhone = phone;
+  showStep(1);
 }
+ 
+// =============================================
+// Step 1：選商品
+// =============================================
+function selectProduct(type) {
+  state.productType = type;
+  document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('prod-' + type).classList.add('selected');
+}
+ 
+function goStep2() {
+  if (!state.productType) { showToast('請先選擇商品'); return; }
+ 
+  // 建立規格清單
+  const prod = PRODUCTS[state.productType];
+  const list = document.getElementById('spec-list');
+  list.innerHTML = '';
+  state.specId = '';
+  state.qty    = 1;
+  document.getElementById('qty-display').textContent = '1';
+ 
+  prod.specs.forEach(spec => {
+    const el = document.createElement('div');
+    el.className  = 'spec-item';
+    el.id         = 'spec-' + spec.id;
+    el.innerHTML  = `<span class="spec-name">${spec.label}</span><span class="spec-price">$${spec.price}</span>`;
+    el.onclick    = () => selectSpec(spec.id);
+    list.appendChild(el);
+  });
+ 
+  document.getElementById('step2-title').textContent = prod.icon + ' ' + prod.name;
+ 
+  // 配送方式（箱購才顯示）
+  const showDel = prod.delivery;
+  document.getElementById('delivery-section').style.display = showDel ? '' : 'none';
+  document.getElementById('shipping-section').style.display = showDel && state.delivery === 'home' ? '' : 'none';
+ 
+  showStep(2);
+}
+ 
+// =============================================
+// Step 2：規格 & 配送
+// =============================================
+function selectSpec(id) {
+  state.specId = id;
+  document.querySelectorAll('.spec-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('spec-' + id).classList.add('selected');
+}
+ 
+function changeQty(delta) {
+  state.qty = Math.max(1, Math.min(99, state.qty + delta));
+  document.getElementById('qty-display').textContent = state.qty;
+}
+ 
+function selectDelivery(type) {
+  state.delivery = type;
+  document.getElementById('del-home').classList.toggle('selected',   type === 'home');
+  document.getElementById('del-pickup').classList.toggle('selected', type === 'pickup');
+  document.getElementById('shipping-section').style.display = type === 'home' ? '' : 'none';
+}
+ 
+function goStep3() {
+  if (!state.specId) { showToast('請選擇規格'); return; }
+ 
+  const prod = PRODUCTS[state.productType];
+  const spec = prod.specs.find(s => s.id === state.specId);
+ 
+  // 箱購宅配需驗證收件資料
+  if (prod.delivery && state.delivery === 'home') {
+    const rn = document.getElementById('recv-name').value.trim();
+    const rp = document.getElementById('recv-phone').value.trim();
+    const ra = document.getElementById('recv-addr').value.trim();
+    if (!rn)                        { showToast('請填寫收件人姓名'); return; }
+    if (!/^09\d{8}$/.test(rp))     { showToast('請填寫正確收件人電話'); return; }
+    if (!ra)                        { showToast('請填寫收件地址'); return; }
+    state.recvName  = rn;
+    state.recvPhone = rp;
+    state.recvAddr  = ra;
+  }
+ 
+  // 組摘要
+  const total   = spec.price * state.qty;
+  const delText = !prod.delivery  ? '自取'
+                : state.delivery === 'pickup' ? '自取'
+                : '宅配到府';
+ 
+  let rows = `
+    <div class="summary-row"><span class="summary-key">訂購人</span><span class="summary-val">${state.userName}</span></div>
+    <div class="summary-row"><span class="summary-key">電話</span><span class="summary-val">${state.userPhone}</span></div>
+    <div class="summary-row"><span class="summary-key">商品</span><span class="summary-val">${spec.label}</span></div>
+    <div class="summary-row"><span class="summary-key">數量</span><span class="summary-val">${state.qty} 份</span></div>
+    <div class="summary-row"><span class="summary-key">配送</span><span class="summary-val">${delText}</span></div>`;
+ 
+  if (prod.delivery && state.delivery === 'home') {
+    rows += `
+    <div class="summary-row"><span class="summary-key">收件人</span><span class="summary-val">${state.recvName} / ${state.recvPhone}</span></div>
+    <div class="summary-row"><span class="summary-key">地址</span><span class="summary-val">${state.recvAddr}</span></div>`;
+  }
+ 
+  rows += `
+    <div class="summary-row total-row">
+      <span class="summary-key">小計</span>
+      <span class="summary-val">$${total.toLocaleString()}</span>
+    </div>`;
+ 
+  document.getElementById('summary-content').innerHTML = rows;
+  document.getElementById('summary-note').textContent = '📌 ' + prod.note;
+  showStep(3);
+}
+ 
+// =============================================
+// 送出訂單
+// =============================================
+async function submitOrder() {
+  const prod = PRODUCTS[state.productType];
+  const spec = prod.specs.find(s => s.id === state.specId);
+  const delText = !prod.delivery  ? '自取'
+                : state.delivery === 'pickup' ? '自取'
+                : '宅配到府';
+ 
+  // 組 LINE 訊息（GAS doPost 解析用）
+  const orderData = {
+    action:     'newOrder',
+    userId:     state.userId,
+    name:       state.userName,
+    phone:      state.userPhone,
+    isNewUser:  state.isNewUser,
+    product:    prod.name,
+    spec:       spec.label,
+    price:      spec.price,
+    qty:        state.qty,
+    total:      spec.price * state.qty,
+    delivery:   delText,
+    recvName:   state.recvName  || '',
+    recvPhone:  state.recvPhone || '',
+    recvAddr:   state.recvAddr  || ''
+  };
+ 
+  try {
+    // 透過 LINE sendMessages 把訂單資料回傳給 GAS
+    await liff.sendMessages([{
+      type: 'text',
+      text: '訂單送出:' + JSON.stringify(orderData)
+    }]);
+ 
+    showPage('page-success');
+  } catch (err) {
+    console.error(err);
+    showToast('送出失敗，請再試一次');
+  }
+}
+ 
+// =============================================
+// 工具
+// =============================================
+function closeLiff() {
+  liff.closeWindow();
+}
+ 
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+ 
+// =============================================
+// 啟動
+// =============================================
+window.addEventListener('load', initLiff);
 </script>
 </body>
 </html>
