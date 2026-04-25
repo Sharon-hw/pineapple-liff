@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>鳳梨訂購登記</title>
-    <!-- GitHub Pages 沒有 CSP 限制，可以正常載入外部 SDK -->
-   <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
         body { font-family: sans-serif; padding: 20px; background-color: #f8f9fa; }
         .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -27,6 +26,7 @@
 </div>
 
 <script>
+const LIFF_ID = "2009872482-pDKNpEwk";
 
 function setStatus(msg) {
     document.getElementById('status').textContent = msg;
@@ -39,44 +39,35 @@ function resetBtn() {
 }
 
 window.onload = function () {
-        // 加這行
-    if (typeof liff === 'undefined') {
-        setStatus('❌ SDK 載入失敗');
-        return;
-    }
-    setStatus('✅ SDK 載入成功，開始 init...');
-    
     const btn = document.getElementById('submitBtn');
 
-    // SDK 載入確認
     if (typeof liff === 'undefined') {
-        setStatus('❌ SDK 載入失敗，請重新整理');
+        setStatus('❌ SDK 未載入');
         return;
     }
 
-    // 逾時保護
+    setStatus('SDK OK，連線中...');
+
     const initTimeout = setTimeout(() => {
-        setStatus('❌ 逾時，請從 LINE 聊天室內開啟此頁面');
+        setStatus('❌ 逾時，請關閉重新從 LINE 開啟');
     }, 10000);
 
     liff.init({ liffId: LIFF_ID })
         .then(() => {
             clearTimeout(initTimeout);
-
             if (!liff.isLoggedIn()) {
                 setStatus('跳轉登入中...');
                 liff.login();
                 return;
             }
-
             const inClient = liff.isInClient();
-            setStatus(`✅ 系統就緒 (${inClient ? 'LINE 內' : '外部瀏覽器'})`);
+            setStatus('✅ 就緒 (' + (inClient ? 'LINE內' : '外部瀏覽器') + ')');
             btn.disabled = false;
             btn.innerText = '送出登記';
         })
         .catch((err) => {
             clearTimeout(initTimeout);
-            setStatus(`❌ 初始化失敗: ${err.message}`);
+            setStatus('❌ init 失敗: ' + err.message);
         });
 };
 
@@ -85,34 +76,20 @@ async function submitData() {
     const phone = document.getElementById('phone').value.trim();
     const btn = document.getElementById('submitBtn');
 
-    if (!name || !phone) {
-        alert('請填寫完整姓名與電話');
-        return;
-    }
+    if (!name || !phone) { alert('請填寫完整姓名與電話'); return; }
 
     btn.disabled = true;
     btn.innerText = '傳送中...';
-    setStatus('正在傳送資料...');
+    setStatus('傳送中...');
 
-    // ✅ 資料只透過 sendMessages 傳回 LINE 聊天室
-    // GAS Webhook 接收後再處理，Token 不經過前端
-    const messages = [{
-        type: 'text',
-        text: '註冊成功:' + name + ',' + phone
-    }];
+    const messages = [{ type: 'text', text: '註冊成功:' + name + ',' + phone }];
 
-    if (liff.isInClient()) {
-        try {
-            await liff.sendMessages(messages);
-            setStatus('✅ 登記成功！');
-            setTimeout(() => liff.closeWindow(), 1000);
-        } catch (err) {
-            setStatus('⚠️ sendMessages 失敗: ' + err.message);
-            resetBtn();
-        }
-    } else {
-        // 外部瀏覽器備援（測試用）
-        setStatus('⚠️ 請從 LINE 聊天室內開啟才能送出');
+    try {
+        await liff.sendMessages(messages);
+        setStatus('✅ 登記成功！');
+        setTimeout(() => liff.closeWindow(), 1000);
+    } catch (err) {
+        setStatus('❌ 失敗: ' + err.message);
         resetBtn();
     }
 }
