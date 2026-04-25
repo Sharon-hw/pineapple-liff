@@ -942,41 +942,49 @@ function goStep3() {
 }
  
 // =============================================
-// 送出訂單
+// 送出訂單 (替換版本)
 // =============================================
 async function submitOrder() {
   const prod = PRODUCTS[state.productType];
   const spec = prod.specs.find(s => s.id === state.specId);
-  const delText = !prod.delivery  ? '自取'
-                : state.delivery === 'pickup' ? '自取'
-                : '宅配到府';
- 
-  // 組 LINE 訊息（GAS doPost 解析用）
+  const delText = !prod.delivery ? '自取' : state.delivery === 'pickup' ? '自取' : '宅配到府';
+
   const orderData = {
-    action:     'newOrder',
-    userId:     state.userId,
-    name:       state.userName,
-    phone:      state.userPhone,
-    isNewUser:  state.isNewUser,
-    product:    prod.name,
-    spec:       spec.label,
-    price:      spec.price,
-    qty:        state.qty,
-    total:      spec.price * state.qty,
-    delivery:   delText,
-    recvName:   state.recvName  || '',
-    recvPhone:  state.recvPhone || '',
-    recvAddr:   state.recvAddr  || ''
+    action:    'newOrder', // 告訴 GAS 這是建單請求
+    userId:    state.userId,
+    name:      state.userName,
+    phone:     state.userPhone,
+    isNewUser: state.isNewUser,
+    product:   prod.name,
+    spec:      spec.label,
+    price:     spec.price,
+    qty:       state.qty,
+    total:     spec.price * state.qty,
+    delivery:  delText,
+    recvName:  state.recvName  || '',
+    recvPhone: state.recvPhone || '',
+    recvAddr:  state.recvAddr  || ''
   };
- 
+
   try {
-    // 透過 LINE sendMessages 把訂單資料回傳給 GAS
-    await liff.sendMessages([{
-      type: 'text',
-      text: '訂單送出:' + JSON.stringify(orderData)
-    }]);
- 
-    showPage('page-success');
+    // 1. POST 建單給 GAS
+    // 請將 GAS_URL 替換為您的 Web App 部署網址 (結尾必須是 /exec)
+    const res = await fetch(GAS_URL, {
+      method:  'POST',
+      body:    JSON.stringify(orderData)
+    });
+    const result = await res.json();
+
+    if (result.ok) {
+      // 2. 送出乾淨的觸發訊息 (GAS 的 doPost 會透過 Webhook 接收此訊息)
+      await liff.sendMessages([{
+        type: 'text',
+        text: '✅ 我剛完成訂購，訂單編號：' + result.orderId
+      }]);
+      showPage('page-success');
+    } else {
+      throw new Error(result.message || '建單失敗');
+    }
   } catch (err) {
     console.error(err);
     showToast('送出失敗，請再試一次');
