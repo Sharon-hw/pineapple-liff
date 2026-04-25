@@ -552,7 +552,7 @@
         <div class="product-icon green">🍍</div>
         <div class="product-info">
           <div class="product-name">少量訂購</div>
-          <div class="product-desc">自取・3 或 5 台斤</div>
+          <div class="product-desc">自取・1隻、2隻...</div>
         </div>
         <div class="product-check">✓</div>
       </div>
@@ -560,7 +560,7 @@
         <div class="product-icon gold">📦</div>
         <div class="product-info">
           <div class="product-name">箱購送禮 <span class="chip">宅配</span></div>
-          <div class="product-desc">6 台斤禮盒 或 20 台斤整箱</div>
+          <div class="product-desc">8隻/一箱</div>
         </div>
         <div class="product-check">✓</div>
       </div>
@@ -568,7 +568,7 @@
         <div class="product-icon brown">🫙</div>
         <div class="product-info">
           <div class="product-name">鳳梨豆豉醬 <span class="chip">限量</span></div>
-          <div class="product-desc">200g 或 400g・每週限 50 罐</div>
+          <div class="product-desc">200g 或 400g・限量</div>
         </div>
         <div class="product-check">✓</div>
       </div>
@@ -611,7 +611,7 @@
     <div class="divider"></div>
     <div class="spec-title">數量</div>
     <div class="qty-row">
-      <span class="qty-label">訂購箱數／份數</span>
+      <span class="qty-label">訂購數量</span>
       <div class="qty-ctrl">
         <button class="qty-btn" onclick="changeQty(-1)">−</button>
         <span class="qty-num" id="qty-display">1</span>
@@ -627,12 +627,12 @@
         <div class="delivery-btn selected" id="del-home" onclick="selectDelivery('home')">
           <div class="delivery-icon">🚚</div>
           <div class="delivery-name">宅配到府</div>
-          <div class="delivery-sub">3 個工作天</div>
+          <div class="delivery-sub">收到出貨通知約 3 個工作天</div>
         </div>
         <div class="delivery-btn" id="del-pickup" onclick="selectDelivery('pickup')">
           <div class="delivery-icon">🏪</div>
           <div class="delivery-name">自取</div>
-          <div class="delivery-sub">來電確認地點</div>
+          <div class="delivery-sub">私訊地點</div>
         </div>
       </div>
     </div>
@@ -696,7 +696,7 @@
 <div id="page-success" class="page">
   <div class="success-icon">✅</div>
   <h2>訂單已送出！</h2>
-  <p>我們已收到您的訂購需求<br>阿閎會盡快與您確認<br><br>預計 3 個工作天出貨 🚚</p>
+  <p>我們已收到您的訂購需求<br>阿閎正在全力採收中,將盡快確認您的訂單<br>收到確認通知訂單才算成立唷～<br> </p>
   <button class="close-btn" onclick="closeLiff()">關閉視窗</button>
 </div>
  
@@ -714,7 +714,7 @@ const PRODUCTS = {
     name: '少量訂購（自取）',
     icon: '🍍',
     specs: [
-      { id: 's1', label: '金鑽鳳梨 1斤', price: 30 }
+      { id: 's1', label: '金鑽鳳梨', price: 0 }
     ],
     delivery: false,
     note: '自取，付款方式：現金'
