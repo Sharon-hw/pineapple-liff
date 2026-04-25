@@ -969,7 +969,7 @@ async function submitOrder() {
   try {
     // 1. POST 建單給 GAS
     // 請將 GAS_URL 替換為您的 Web App 部署網址 (結尾必須是 /exec)
-    const res = await fetch(GAS_URL, {
+    const res = await fetch(https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec, {
       method:  'POST',
       body:    JSON.stringify(orderData)
     });
