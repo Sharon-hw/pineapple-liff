@@ -39,6 +39,13 @@ function resetBtn() {
 }
 
 window.onload = function () {
+        // 加這行
+    if (typeof liff === 'undefined') {
+        setStatus('❌ SDK 載入失敗');
+        return;
+    }
+    setStatus('✅ SDK 載入成功，開始 init...');
+    
     const btn = document.getElementById('submitBtn');
 
     // SDK 載入確認
