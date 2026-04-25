@@ -761,36 +761,51 @@ let state = {
 // LIFF 初始化
 // =============================================
 async function initLiff() {
+  const loadingText = document.querySelector('.loading-text');
+
   try {
+    loadingText.textContent = 'LIFF 初始化中…';
     await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
- 
-    const profile   = await liff.getProfile();
-    state.userId    = profile.userId;
- 
-    // 查詢是否已註冊（透過 GAS Web App）
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec'; // ← 填入你的 GAS 部署 URL
-    const res  = await fetch(GAS_URL + '?action=getUser&userId=' + encodeURIComponent(state.userId));
-    const data = await res.json();
- 
+
+    loadingText.textContent = '檢查登入狀態…';
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+
+    loadingText.textContent = '取得用戶資料…';
+    const profile = await liff.getProfile();
+    state.userId  = profile.userId;
+
+    loadingText.textContent = '查詢會員資料…';
+    let found = false, userName = '', userPhone = '';
+    try {
+      const res  = await fetch(GAS_URL + '?action=getUser&userId=' + encodeURIComponent(state.userId));
+      const data = await res.json();
+      found     = data.found;
+      userName  = data.name  || '';
+      userPhone = data.phone || '';
+    } catch (fetchErr) {
+      loadingText.textContent = '⚠️ 查詢失敗：' + fetchErr.message;
+      await new Promise(r => setTimeout(r, 2500));
+    }
+
     document.getElementById('loading').style.display = 'none';
- 
-    if (data.found) {
-      state.userName  = data.name;
-      state.userPhone = data.phone;
+
+    if (found) {
+      state.userName  = userName;
+      state.userPhone = userPhone;
       state.isNewUser = false;
       showStep(1);
     } else {
       state.isNewUser = true;
       showPage('page-register');
     }
+
   } catch (err) {
-    console.error(err);
-    document.getElementById('loading').style.display = 'none';
-    showToast('載入失敗，請重新開啟');
+    loadingText.textContent = '❌ 錯誤：' + err.message;
   }
 }
- 
 // =============================================
 // 頁面切換
 // =============================================
