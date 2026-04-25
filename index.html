@@ -950,7 +950,7 @@ async function submitOrder() {
   const delText = !prod.delivery ? '自取' : state.delivery === 'pickup' ? '自取' : '宅配到府';
 
   const orderData = {
-    action:    'newOrder', // 告訴 GAS 這是建單請求
+    action:    'newOrder',
     userId:    state.userId,
     name:      state.userName,
     phone:     state.userPhone,
@@ -967,19 +967,19 @@ async function submitOrder() {
   };
 
   try {
-    // 1. POST 建單給 GAS
-    // 請將 GAS_URL 替換為您的 Web App 部署網址 (結尾必須是 /exec)
-    const res = await fetch(https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec, {
+    // 改用 text/plain 避開 CORS 預檢請求，這是 GAS 最穩定的接收方式
+    const res = await fetch(GAS_URL, {
       method:  'POST',
+      headers: { 'Content-Type': 'text/plain' }, 
       body:    JSON.stringify(orderData)
     });
+    
     const result = await res.json();
 
     if (result.ok) {
-      // 2. 送出乾淨的觸發訊息 (GAS 的 doPost 會透過 Webhook 接收此訊息)
       await liff.sendMessages([{
         type: 'text',
-        text: '✅ 我剛完成訂購，訂單編號：' + result.orderId
+        text: '✅ 我剛送出訂購，訂單編號：' + result.orderId
       }]);
       showPage('page-success');
     } else {
@@ -987,7 +987,7 @@ async function submitOrder() {
     }
   } catch (err) {
     console.error(err);
-    showToast('送出失敗，請再試一次');
+    showToast('連線失敗：' + err.message);
   }
 }
  
