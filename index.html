@@ -1008,7 +1008,7 @@ async function submitOrder() {
 
   try {
     // 改用 text/plain 避開 CORS 預檢請求，這是 GAS 最穩定的接收方式
-    const res = await fetch(GAS_URL, {
+    const res = await fetch(https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec, {
       method:  'POST',
       headers: { 'Content-Type': 'text/plain' }, 
       body:    JSON.stringify(orderData)
