@@ -529,7 +529,24 @@
     </div>
   </div>
 </div>
- 
+    
+<!-- ========== 近期訂單提示頁 ========== -->
+<div id="page-recent-order" class="page">
+  <div class="card" style="margin-top:20px">
+    <div class="register-hero">
+      <div class="pineapple">📦</div>
+      <h2>您已有近期訂單</h2>
+      <p id="recent-order-info" style="margin-bottom:8px"></p>
+      <p>是否要繼續新增一筆訂單？</p>
+    </div>
+    <div class="divider"></div>
+    <div class="btn-row" style="flex-direction:column; gap:10px">
+      <button class="btn-next" onclick="showStep(1)">➕ 繼續新增訂單</button>
+      <button class="btn-back" style="flex:1; text-align:center" onclick="closeLiff()">關閉視窗</button>
+    </div>
+  </div>
+</div>
+    
 <!-- ========== 訂購 Step 1：選商品 ========== -->
 <div id="page-step1" class="page">
   <div class="progress-wrap">
@@ -822,15 +839,23 @@ async function initLiff() {
     document.getElementById('loading').style.display = 'none';
 
     // 6. 根據查詢結果分流
-    if (found) {
-      state.userName = userName;
-      state.userPhone = userPhone;
-      state.isNewUser = false;
-      showStep(1); // 舊客戶直接進入選商品
-    } else {
-      state.isNewUser = true;
-      showPage('page-register'); // 查無資料則進入註冊頁
-    }
+if (found) {
+  state.userName  = userName;
+  state.userPhone = userPhone;
+  state.isNewUser = false;
+
+  // 有近期訂單 → 先顯示提示頁
+  if (data.recentOrderId) {
+    document.getElementById('recent-order-info').textContent =
+      '訂單編號：' + data.recentOrderId;
+    showPage('page-recent-order');
+  } else {
+    showStep(1);
+  }
+} else {
+  state.isNewUser = true;
+  showPage('page-register');
+}
 
   } catch (err) {
     // 這是最外層的嚴重錯誤處理 (例如 LIFF ID 填錯或 SDK 掛掉)
