@@ -727,26 +727,26 @@ const PRODUCTS = {
     name: '少量訂購（自取）',
     icon: '🍍',
     specs: [
-      { id: 's1', label: '金鑽鳳梨,$30/斤' }
+      { id: 's1', label: '金鑽鳳梨', note: '$30/斤，依實際重量計算' }
     ],
     delivery: false,
-    note: '自取，付款方式：現金'
+    note: '自取，付款方式：現金・依實際重量結帳'
   },
   box: {
     name: '箱購送禮',
     icon: '📦',
     specs: [
-      { id: 'b2', label: '整箱 8隻' }  // ← 填入實際價格
+      { id: 'b2', label: '整箱 8隻', note: '依實際重量計算' }
     ],
     delivery: true,
-    note: '出貨通知後約 3 個工作天到貨'
+    note: '出貨通知後約 3 個工作天到貨・依實際重量結帳'
   },
   sauce: {
     name: '鳳梨豆豉醬（限量）',
     icon: '🫙',
     specs: [
-      { id: 'sc1', label: '小罐 200g', price: 0 },  // ← 填入實際價格
-      { id: 'sc2', label: '大罐 400g', price: 0 }   // ← 填入實際價格
+      { id: 'sc1', label: '小罐 200g', note: '$120' },
+      { id: 'sc2', label: '大罐 400g', note: '$220' }
     ],
     delivery: false,
     note: '限量，售完為止・需自取'
@@ -889,14 +889,14 @@ function goStep2() {
   state.qty    = 1;
   document.getElementById('qty-display').textContent = '1';
  
-  prod.specs.forEach(spec => {
-    const el = document.createElement('div');
-    el.className  = 'spec-item';
-    el.id         = 'spec-' + spec.id;
-    el.innerHTML  = `<span class="spec-name">${spec.label}</span><span class="spec-price">$${spec.price}</span>`;
-    el.onclick    = () => selectSpec(spec.id);
-    list.appendChild(el);
-  });
+ prod.specs.forEach(spec => {
+  const el = document.createElement('div');
+  el.className = 'spec-item';
+  el.id        = 'spec-' + spec.id;
+  el.innerHTML = `<span class="spec-name">${spec.label}</span><span class="spec-price">${spec.note || ''}</span>`;
+  el.onclick   = () => selectSpec(spec.id);
+  list.appendChild(el);
+});
  
   document.getElementById('step2-title').textContent = prod.icon + ' ' + prod.name;
  
@@ -932,54 +932,50 @@ function selectDelivery(type) {
 function goStep3() {
   if (!state.specId) { showToast('請選擇規格'); return; }
 
-    // 需求時間：所有商品都必填
   const rd = document.getElementById('recv-date').value;
   if (!rd) { showToast('請選擇需求時間'); return; }
   state.recvDate = rd;
-  
+
   const prod = PRODUCTS[state.productType];
   const spec = prod.specs.find(s => s.id === state.specId);
- 
-  // 箱購宅配需驗證收件資料
+
   if (prod.delivery && state.delivery === 'home') {
     const rn = document.getElementById('recv-name').value.trim();
     const rp = document.getElementById('recv-phone').value.trim();
     const ra = document.getElementById('recv-addr').value.trim();
-    if (!rn)                        { showToast('請填寫收件人姓名'); return; }
-    if (!/^09\d{8}$/.test(rp))     { showToast('請填寫正確收件人電話'); return; }
-    if (!ra)                        { showToast('請填寫收件地址'); return; }
+    if (!rn)                    { showToast('請填寫收件人姓名'); return; }
+    if (!/^09\d{8}$/.test(rp)) { showToast('請填寫正確收件人電話'); return; }
+    if (!ra)                    { showToast('請填寫收件地址'); return; }
     state.recvName  = rn;
     state.recvPhone = rp;
     state.recvAddr  = ra;
   }
- 
-  // 組摘要
-  const total   = spec.price * state.qty;
-  const delText = !prod.delivery  ? '自取'
+
+  const delText = !prod.delivery              ? '自取'
                 : state.delivery === 'pickup' ? '自取'
                 : '宅配到府';
- 
+
   let rows = `
     <div class="summary-row"><span class="summary-key">訂購人</span><span class="summary-val">${state.userName}</span></div>
     <div class="summary-row"><span class="summary-key">電話</span><span class="summary-val">${state.userPhone}</span></div>
     <div class="summary-row"><span class="summary-key">商品</span><span class="summary-val">${spec.label}</span></div>
     <div class="summary-row"><span class="summary-key">數量</span><span class="summary-val">${state.qty} 份</span></div>
-    <div class="summary-row"><span class="summary-key">配送</span><span class="summary-val">${delText}</span></div>`;
+    <div class="summary-row"><span class="summary-key">配送</span><span class="summary-val">${delText}</span></div>
     <div class="summary-row"><span class="summary-key">需求時間</span><span class="summary-val">${state.recvDate}</span></div>`;
 
-    
   if (prod.delivery && state.delivery === 'home') {
     rows += `
     <div class="summary-row"><span class="summary-key">收件人</span><span class="summary-val">${state.recvName} / ${state.recvPhone}</span></div>
     <div class="summary-row"><span class="summary-key">地址</span><span class="summary-val">${state.recvAddr}</span></div>`;
   }
- 
+
+  // 結帳說明取代固定金額
   rows += `
     <div class="summary-row total-row">
-      <span class="summary-key">小計</span>
-      <span class="summary-val">$${total.toLocaleString()}</span>
+      <span class="summary-key">費用</span>
+      <span class="summary-val" style="font-size:13px;color:var(--text-muted)">依實際重量結帳</span>
     </div>`;
- 
+
   document.getElementById('summary-content').innerHTML = rows;
   document.getElementById('summary-note').textContent = '📌 ' + prod.note;
   showStep(3);
@@ -1003,11 +999,11 @@ async function submitOrder() {
     spec:      spec.label,
     price:     spec.price,
     qty:       state.qty,
-    total:     spec.price * state.qty,
     delivery:  delText,
     recvName:  state.recvName  || '',
     recvPhone: state.recvPhone || '',
-    recvAddr:  state.recvAddr  || ''
+    recvAddr:  state.recvAddr  || '',
+    recvDate:  state.recvDate  || ''
   };
 
   try {
