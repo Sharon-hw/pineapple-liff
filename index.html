@@ -821,11 +821,11 @@ try {
   const id = setTimeout(() => controller.abort(), 5000);
 
   const res = await fetch(GAS_URL + '?action=getUser&userId=' + encodeURIComponent(state.userId), {
-    method: 'GET',
-    mode: 'cors', // 強制跨域模式
-    signal: controller.signal
-  });
-  clearTimeout(id);
+        method: 'GET',
+        mode: 'cors',
+        signal: controller.signal
+      });
+      clearTimeout(id);
 
   const data   = await res.json();
   found         = data.found        || false;
@@ -836,7 +836,7 @@ try {
 } catch (fetchErr) {
   console.warn('後端查詢失敗或超時:', fetchErr);
   found = false;
-}finally {
+}
 
 // 5. 關閉 Loading
 document.getElementById('loading').style.display = 'none';
@@ -849,25 +849,25 @@ if (found) {
 
   if (recentOrderId) {
     // 顯示資訊並確保區塊是可見的
-  const infoEl = document.getElementById('recent-order-info');
-  infoEl.textContent = '您的近期訂單：' + recentOrderId;
-  infoEl.style.display = 'block'; // 或移除 hidden class
-} else {
-  // 如果超過 24 小時，後端會給空字串，這裡就直接隱藏
-  document.getElementById('recent-order-info').style.display = 'none';
-}
-} else {
-  state.isNewUser = true;
-  showPage('page-register');
-}
+ document.getElementById('recent-order-info').textContent = '您的近期訂單：' + recentOrderId;
+        showPage('page-recent-order'); 
+      } else {
+        showStep(1);
+      }
+    } else {
+      state.isNewUser = true;
+      showPage('page-register');
+    }
       
   } catch (err) {
-    // 這是最外層的嚴重錯誤處理 (例如 LIFF ID 填錯或 SDK 掛掉)
+    // 嚴重錯誤處理
     console.error('LIFF Error:', err);
-    loadingText.textContent = '❌ 初始化失敗: ' + err.message;
-    // 如果發生嚴重錯誤，5秒後嘗試強制進入註冊頁試試看
+    if (loadingText) loadingText.textContent = '❌ 初始化失敗: ' + err.message;
+    
+    // 備援方案：5秒後強行進入註冊頁
     setTimeout(() => {
-      document.getElementById('loading').style.display = 'none';
+      const loader = document.getElementById('loading');
+      if (loader) loader.style.display = 'none';
       showPage('page-register');
     }, 5000);
   }
