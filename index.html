@@ -881,7 +881,6 @@ async function submitOrder() {
   const btn = document.querySelector('.btn-next.gold');
   btn.disabled    = true;
   btn.textContent = '⌛ 正在建立訂單...';
-console.log("函數開始執行");
 
   const prod    = PRODUCTS[state.productType];
   const spec    = prod.specs.find(s => s.id === state.specId);
