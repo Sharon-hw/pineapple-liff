@@ -998,7 +998,6 @@ async function submitOrder() {
   const rand    = Math.floor(Math.random() * 900) + 100;
   const orderId = '#' + dateStr + '-' + rand;
 
-  // 組 GET 參數
   const params = new URLSearchParams({
     action:    'newOrder',
     orderId:   orderId,
@@ -1017,13 +1016,14 @@ async function submitOrder() {
   });
 
   try {
-    // 用 GET 送出，GAS doGet 接收
     const res  = await fetch(GAS_URL + '?' + params.toString());
     const data = await res.json();
 
     if (!data.ok) throw new Error(data.error || '建單失敗');
 
-    // 建單成功才 sendMessages
+    // 等 2 秒讓 Sheets 確實寫入後，再觸發 LINE Webhook
+    await new Promise(r => setTimeout(r, 3000));
+
     await liff.sendMessages([{
       type: 'text',
       text: '✅ 我剛送出訂購，訂單編號：' + orderId
@@ -1036,7 +1036,6 @@ async function submitOrder() {
     showToast('送出失敗，請再試一次');
   }
 }
- 
 // =============================================
 // 工具
 // =============================================
