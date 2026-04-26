@@ -846,12 +846,14 @@ if (found) {
   state.isNewUser = false;
 
   if (recentOrderId) {
-    document.getElementById('recent-order-info').textContent =
-      '訂單編號：' + recentOrderId;
-    showPage('page-recent-order');
-  } else {
-    showStep(1);
-  }
+    // 顯示資訊並確保區塊是可見的
+  const infoEl = document.getElementById('recent-order-info');
+  infoEl.textContent = '您的近期訂單：' + recentOrderId;
+  infoEl.style.display = 'block'; // 或移除 hidden class
+} else {
+  // 如果超過 24 小時，後端會給空字串，這裡就直接隱藏
+  document.getElementById('recent-order-info').style.display = 'none';
+}
 } else {
   state.isNewUser = true;
   showPage('page-register');
