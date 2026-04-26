@@ -1007,29 +1007,55 @@ async function submitOrder() {
   };
 
   try {
-    // 改用 text/plain 避開 CORS 預檢請求，這是 GAS 最穩定的接收方式
-    const res = await fetch(https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec, {
+    // no-cors：不等回應，直接送出
+    fetch(https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec, {
       method:  'POST',
-      headers: { 'Content-Type': 'text/plain' }, 
-      body:    JSON.stringify(orderData)
+      headers: { 'Content-Type': 'text/plain' },
+      body:    JSON.stringify(orderData),
+      mode:    'no-cors'
     });
-    
-    const result = await res.json();
 
-    if (result.ok) {
-      await liff.sendMessages([{
-        type: 'text',
-        text: '✅ 我剛送出訂購，訂單編號：' + result.orderId
-      }]);
-      showPage('page-success');
-    } else {
-      throw new Error(result.message || '建單失敗');
-    }
+    // 不等 fetch，直接 sendMessages 觸發 GAS reply
+    await liff.sendMessages([{
+      type: 'text',
+      text: '✅ 我剛送出訂購，訂單編號：' + orderId
+    }]);
+
+    showPage('page-success');
+
   } catch (err) {
     console.error(err);
-    showToast('連線失敗：' + err.message);
+    showToast('送出失敗，請再試一次');
   }
 }
+GAS handleLiffOrder 改用傳入的 orderId
+javascriptfunction handleLiffOrder(d) {
+  try {
+    if (d.isNewUser) {
+      saveUser(d.userId, d.name, d.phone);
+    }
+
+    const itemText = d.spec + ' x' + d.qty;
+    const address  = d.delivery === '宅配到府'
+      ? '[' + d.recvName + ' ' + d.recvPhone + '] ' + d.recvAddr
+      : '自取';
+
+    // 用前端帶來的 orderId，不在後端重新產生
+    const orderId = d.orderId || createOrderId();
+
+    saveOrder(d.userId, d.name, d.phone, itemText, address, orderId,
+              d.delivery, d.recvName || '', d.recvPhone || '', d.recvDate || '');
+
+    notifyFarmer(d.name, d.phone, d.product, itemText,
+                 d.delivery, d.recvName, d.recvPhone, d.recvAddr, orderId, d.recvDate);
+
+    return { ok: true, orderId: orderId };
+
+  } catch (err) {
+    console.error('handleLiffOrder error: ' + err);
+    return { ok: false, error: err.message };
+  }
+
  
 // =============================================
 // 工具
