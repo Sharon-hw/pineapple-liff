@@ -482,6 +482,10 @@
     border-radius: 20px;
     margin-left: 6px;
   }
+    .field input[type="date"] {
+  color: var(--text-main);
+  font-family: 'Noto Sans TC', sans-serif;
+}
 </style>
 </head>
 <body>
@@ -618,6 +622,15 @@
         <button class="qty-btn" onclick="changeQty(1)">+</button>
       </div>
     </div>
+      
+<!-- 需求時間（所有商品都顯示）-->
+<div id="date-section">
+  <div class="divider"></div>
+  <div class="spec-title" style="margin-bottom:10px">需求時間</div>
+  <div class="field">
+    <input type="date" id="recv-date" min="">
+  </div>
+</div>
  
     <!-- 配送（箱購才顯示） -->
     <div id="delivery-section" style="display:none">
@@ -754,7 +767,8 @@ let state = {
   delivery:     'home',  // home / pickup
   recvName:     '',
   recvPhone:    '',
-  recvAddr:     ''
+  recvAddr:  '',
+  recvDate:  ''
 };
  
 // =============================================
@@ -917,7 +931,12 @@ function selectDelivery(type) {
  
 function goStep3() {
   if (!state.specId) { showToast('請選擇規格'); return; }
- 
+
+    // 需求時間：所有商品都必填
+  const rd = document.getElementById('recv-date').value;
+  if (!rd) { showToast('請選擇需求時間'); return; }
+  state.recvDate = rd;
+  
   const prod = PRODUCTS[state.productType];
   const spec = prod.specs.find(s => s.id === state.specId);
  
@@ -946,7 +965,9 @@ function goStep3() {
     <div class="summary-row"><span class="summary-key">商品</span><span class="summary-val">${spec.label}</span></div>
     <div class="summary-row"><span class="summary-key">數量</span><span class="summary-val">${state.qty} 份</span></div>
     <div class="summary-row"><span class="summary-key">配送</span><span class="summary-val">${delText}</span></div>`;
- 
+    <div class="summary-row"><span class="summary-key">需求時間</span><span class="summary-val">${state.recvDate}</span></div>`;
+
+    
   if (prod.delivery && state.delivery === 'home') {
     rows += `
     <div class="summary-row"><span class="summary-key">收件人</span><span class="summary-val">${state.recvName} / ${state.recvPhone}</span></div>
