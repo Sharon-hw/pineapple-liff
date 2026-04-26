@@ -985,19 +985,29 @@ function goStep3() {
 // 送出訂單 (替換版本)
 // =============================================
 async function submitOrder() {
-  const prod = PRODUCTS[state.productType];
-  const spec = prod.specs.find(s => s.id === state.specId);
-  const delText = !prod.delivery ? '自取' : state.delivery === 'pickup' ? '自取' : '宅配到府';
+  const prod    = PRODUCTS[state.productType];
+  const spec    = prod.specs.find(s => s.id === state.specId);
+  const delText = !prod.delivery              ? '自取'
+                : state.delivery === 'pickup' ? '自取'
+                : '宅配到府';
+
+  // 前端產生訂單編號
+  const now     = new Date();
+  const dateStr = now.getFullYear().toString() +
+                  String(now.getMonth() + 1).padStart(2, '0') +
+                  String(now.getDate()).padStart(2, '0');
+  const rand    = Math.floor(Math.random() * 900) + 100;
+  const orderId = '#' + dateStr + '-' + rand;
 
   const orderData = {
     action:    'newOrder',
+    orderId:   orderId,
     userId:    state.userId,
     name:      state.userName,
     phone:     state.userPhone,
     isNewUser: state.isNewUser,
     product:   prod.name,
     spec:      spec.label,
-    price:     spec.price,
     qty:       state.qty,
     delivery:  delText,
     recvName:  state.recvName  || '',
@@ -1007,15 +1017,15 @@ async function submitOrder() {
   };
 
   try {
-    // no-cors：不等回應，直接送出
-    fetch(https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec, {
+    // no-cors 送出，不等回應
+    fetch(GAS_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'text/plain' },
       body:    JSON.stringify(orderData),
       mode:    'no-cors'
     });
 
-    // 不等 fetch，直接 sendMessages 觸發 GAS reply
+    // 直接 sendMessages 觸發 GAS reply
     await liff.sendMessages([{
       type: 'text',
       text: '✅ 我剛送出訂購，訂單編號：' + orderId
@@ -1028,34 +1038,6 @@ async function submitOrder() {
     showToast('送出失敗，請再試一次');
   }
 }
-GAS handleLiffOrder 改用傳入的 orderId
-javascriptfunction handleLiffOrder(d) {
-  try {
-    if (d.isNewUser) {
-      saveUser(d.userId, d.name, d.phone);
-    }
-
-    const itemText = d.spec + ' x' + d.qty;
-    const address  = d.delivery === '宅配到府'
-      ? '[' + d.recvName + ' ' + d.recvPhone + '] ' + d.recvAddr
-      : '自取';
-
-    // 用前端帶來的 orderId，不在後端重新產生
-    const orderId = d.orderId || createOrderId();
-
-    saveOrder(d.userId, d.name, d.phone, itemText, address, orderId,
-              d.delivery, d.recvName || '', d.recvPhone || '', d.recvDate || '');
-
-    notifyFarmer(d.name, d.phone, d.product, itemText,
-                 d.delivery, d.recvName, d.recvPhone, d.recvAddr, orderId, d.recvDate);
-
-    return { ok: true, orderId: orderId };
-
-  } catch (err) {
-    console.error('handleLiffOrder error: ' + err);
-    return { ok: false, error: err.message };
-  }
-
  
 // =============================================
 // 工具
