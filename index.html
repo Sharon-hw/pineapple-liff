@@ -868,6 +868,75 @@ if (found) {
     }, 5000);
   }
 }
+
+    // =============================================
+// 送出訂單（防重複送出）
+// =============================================
+let isSubmitting = false; // 全域防重複旗標
+
+async function submitOrder() {
+  if (isSubmitting) return; // 已在送出中，直接忽略
+  isSubmitting = true;
+
+  const btn = document.querySelector('.btn-next.gold');
+  btn.disabled    = true;
+  btn.textContent = '送出中…';
+
+  const prod    = PRODUCTS[state.productType];
+  const spec    = prod.specs.find(s => s.id === state.specId);
+  const delText = !prod.delivery              ? '自取'
+                : state.delivery === 'pickup' ? '自取'
+                : '宅配到府';
+
+  const now     = new Date();
+  const dateStr = now.getFullYear().toString() +
+                  String(now.getMonth() + 1).padStart(2, '0') +
+                  String(now.getDate()).padStart(2, '0');
+  const rand    = Math.floor(Math.random() * 900) + 100;
+  const orderId = '#' + dateStr + '-' + rand;
+
+  const params = new URLSearchParams({
+    action:    'newOrder',
+    orderId:   orderId,
+    userId:    state.userId,
+    name:      state.userName,
+    phone:     state.userPhone,
+    isNewUser: state.isNewUser ? '1' : '0',
+    product:   prod.name,
+    spec:      spec.label,
+    qty:       String(state.qty),
+    delivery:  delText,
+    recvName:  state.recvName  || '',
+    recvPhone: state.recvPhone || '',
+    recvAddr:  state.recvAddr  || '',
+    recvDate:  state.recvDate  || ''
+  });
+
+  try {
+    const res  = await fetch(GAS_URL + '?' + params.toString());
+    const data = await res.json();
+
+    if (!data.ok) throw new Error(data.error || '建單失敗');
+
+    // 建單成功 → 先跳成功頁，背景繼續送 sendMessages
+    showPage('page-success');
+
+    await new Promise(r => setTimeout(r, 2000));
+    await liff.sendMessages([{
+      type: 'text',
+      text: '✅ 我剛送出訂購，訂單編號：' + orderId
+    }]);
+
+  } catch (err) {
+    console.error(err);
+    // 失敗才恢復按鈕讓用戶重試
+    isSubmitting        = false;
+    btn.disabled        = false;
+    btn.textContent     = '確認送出 🍍';
+    showToast('送出失敗，請再試一次');
+  }
+}
+    
 // =============================================
 // 頁面切換
 // =============================================
