@@ -918,12 +918,15 @@ try {
 
     if (!data.ok) throw new Error(data.error || '建單失敗');
 
-    // 3. 在 1.5 秒等待期間，更新按鈕文字讓使用者知道進度
-    btn.textContent = '✍️ 資料寫入中，請稍候...';
-    await new Promise(r => setTimeout(r, 1500));
+    if (btn) {
+      btn.textContent = '✍️ 資料寫入中...';
+      // 強制讓瀏覽器休息 1 秒，確保使用者看得到這行字
+      await new Promise(r => setTimeout(r, 1000)); 
 
-    // 4. 準備傳送 LINE 訊息時再次更新
-    btn.textContent = '💬 正在傳送 LINE 確認訊息...';
+      btn.textContent = '💬 傳送確認訊息...';
+      // 再休息 0.5 秒
+      await new Promise(r => setTimeout(r, 500));
+    }
     await liff.sendMessages([{
       type: 'text',
       text: '✅ 我剛送出訂購，訂單編號：' + orderId
@@ -979,20 +982,25 @@ function goStep2() {
   if (!state.productType) { showToast('請先選擇商品'); return; }
 
   const prod = PRODUCTS[state.productType];
+  // 修正：每次進入 Step 2 都把輸入框清空
+  const nameInput = document.getElementById('recv-name');
+  const phoneInput = document.getElementById('recv-phone');
+  const addrInput = document.getElementById('recv-addr');
+  const dateInput = document.getElementById('recv-date');
+
+  if (nameInput) nameInput.value = '';
+  if (phoneInput) phoneInput.value = '';
+  if (addrInput) addrInput.value = '';
+  if (dateInput) {
+    dateInput.value = '';
+    // 修正：限制不能選過去的日期
+    dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
+  }
   
-  // ─── 新增：清空地址與收件資訊 ───
-  document.getElementById('recv-name').value = '';
-  document.getElementById('recv-phone').value = '';
-  document.getElementById('recv-addr').value = '';
+  // 同步清空 state 變數
   state.recvName = '';
   state.recvPhone = '';
   state.recvAddr = '';
-  
-  // ─── 新增：設定日期最小值為今天 ───
-  const today = new Date().toISOString().split('T')[0];
-  const dateInput = document.getElementById('recv-date');
-  dateInput.setAttribute('min', today);
-  dateInput.value = ''; // 每次進入都要重新選擇日期
   state.recvDate = '';
 
   // 建立規格清單
