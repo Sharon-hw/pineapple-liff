@@ -991,7 +991,6 @@ async function submitOrder() {
                 : state.delivery === 'pickup' ? '自取'
                 : '宅配到府';
 
-  // 前端產生訂單編號
   const now     = new Date();
   const dateStr = now.getFullYear().toString() +
                   String(now.getMonth() + 1).padStart(2, '0') +
@@ -999,36 +998,32 @@ async function submitOrder() {
   const rand    = Math.floor(Math.random() * 900) + 100;
   const orderId = '#' + dateStr + '-' + rand;
 
-  const orderData = {
+  // 組 GET 參數
+  const params = new URLSearchParams({
     action:    'newOrder',
     orderId:   orderId,
     userId:    state.userId,
     name:      state.userName,
     phone:     state.userPhone,
-    isNewUser: state.isNewUser,
+    isNewUser: state.isNewUser ? '1' : '0',
     product:   prod.name,
     spec:      spec.label,
-    qty:       state.qty,
+    qty:       String(state.qty),
     delivery:  delText,
     recvName:  state.recvName  || '',
     recvPhone: state.recvPhone || '',
     recvAddr:  state.recvAddr  || '',
     recvDate:  state.recvDate  || ''
-  };
+  });
 
   try {
-    // no-cors 送出，不等回應
-    fetch(GAS_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body:    JSON.stringify(orderData),
-      mode:    'no-cors'
-    });
-      
-    // 等 3 秒讓 GAS 有時間寫入 Sheets，再觸發 reply
-    await new Promise(r => setTimeout(r, 3000));
-    
-    // 直接 sendMessages 觸發 GAS reply
+    // 用 GET 送出，GAS doGet 接收
+    const res  = await fetch(GAS_URL + '?' + params.toString());
+    const data = await res.json();
+
+    if (!data.ok) throw new Error(data.error || '建單失敗');
+
+    // 建單成功才 sendMessages
     await liff.sendMessages([{
       type: 'text',
       text: '✅ 我剛送出訂購，訂單編號：' + orderId
