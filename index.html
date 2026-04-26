@@ -818,9 +818,11 @@ let recentOrderId = '';
 
 try {
   const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), 8000);
+  const id = setTimeout(() => controller.abort(), 5000);
 
   const res = await fetch(GAS_URL + '?action=getUser&userId=' + encodeURIComponent(state.userId), {
+    method: 'GET',
+    mode: 'cors', // 強制跨域模式
     signal: controller.signal
   });
   clearTimeout(id);
@@ -834,7 +836,7 @@ try {
 } catch (fetchErr) {
   console.warn('後端查詢失敗或超時:', fetchErr);
   found = false;
-}
+}finally {
 
 // 5. 關閉 Loading
 document.getElementById('loading').style.display = 'none';
