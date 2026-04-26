@@ -809,45 +809,45 @@ async function initLiff() {
     const profile = await liff.getProfile();
     state.userId = profile.userId;
 
-    // 4. 查詢後端會員資料 (加上錯誤容錯與超時控制)
-    loadingText.textContent = '查詢會員資料…';
-    let found = false;
-    let userName = '';
-    let userPhone = '';
+    /// 4. 查詢後端會員資料
+loadingText.textContent = '查詢會員資料…';
+let found        = false;
+let userName     = '';
+let userPhone    = '';
+let recentOrderId = '';
 
-    try {
-      // 加上 AbortController 防止 fetch 等太久卡死
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 8000); // 8秒沒回應就超時
+try {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), 8000);
 
-      const res = await fetch(GAS_URL + '?action=getUser&userId=' + encodeURIComponent(state.userId), {
-        signal: controller.signal
-      });
-      clearTimeout(id);
-      
-      const data = await res.json();
-      found = data.found;
-      userName = data.name || '';
-      userPhone = data.phone || '';
-    } catch (fetchErr) {
-      // 重點：如果 fetch 失敗，console 記錄就好，不要擋住用戶
-      console.warn('後端查詢失敗或超時，改進入註冊流程:', fetchErr);
-      found = false; 
-    }
+  const res = await fetch(GAS_URL + '?action=getUser&userId=' + encodeURIComponent(state.userId), {
+    signal: controller.signal
+  });
+  clearTimeout(id);
 
-    // 5. 關閉 Loading 畫面 (不論查詢成功或失敗都要關閉)
-    document.getElementById('loading').style.display = 'none';
+  const data   = await res.json();
+  found         = data.found        || false;
+  userName      = data.name         || '';
+  userPhone     = data.phone        || '';
+  recentOrderId = data.recentOrderId || '';
 
-    // 6. 根據查詢結果分流
+} catch (fetchErr) {
+  console.warn('後端查詢失敗或超時:', fetchErr);
+  found = false;
+}
+
+// 5. 關閉 Loading
+document.getElementById('loading').style.display = 'none';
+
+// 6. 分流
 if (found) {
   state.userName  = userName;
   state.userPhone = userPhone;
   state.isNewUser = false;
 
-  // 有近期訂單 → 先顯示提示頁
-  if (data.recentOrderId) {
+  if (recentOrderId) {
     document.getElementById('recent-order-info').textContent =
-      '訂單編號：' + data.recentOrderId;
+      '訂單編號：' + recentOrderId;
     showPage('page-recent-order');
   } else {
     showStep(1);
@@ -856,7 +856,7 @@ if (found) {
   state.isNewUser = true;
   showPage('page-register');
 }
-
+      
   } catch (err) {
     // 這是最外層的嚴重錯誤處理 (例如 LIFF ID 填錯或 SDK 掛掉)
     console.error('LIFF Error:', err);
