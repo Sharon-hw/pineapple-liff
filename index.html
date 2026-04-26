@@ -1022,7 +1022,7 @@ async function submitOrder() {
     if (!data.ok) throw new Error(data.error || '建單失敗');
 
     // 等 2 秒讓 Sheets 確實寫入後，再觸發 LINE Webhook
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 2000));
 
     await liff.sendMessages([{
       type: 'text',
