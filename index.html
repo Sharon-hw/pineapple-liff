@@ -880,7 +880,7 @@ async function submitOrder() {
 
   const btn = document.querySelector('.btn-next.gold');
   btn.disabled    = true;
-  btn.textContent = '送出中…';
+  btn.textContent = '⌛ 正在建立訂單...';
 
   const prod    = PRODUCTS[state.productType];
   const spec    = prod.specs.find(s => s.id === state.specId);
@@ -911,32 +911,35 @@ async function submitOrder() {
     recvAddr:  state.recvAddr  || '',
     recvDate:  state.recvDate  || ''
   });
-
-  try {
+try {
+    // 2. 呼叫 GAS API
     const res  = await fetch(GAS_URL + '?' + params.toString());
     const data = await res.json();
 
     if (!data.ok) throw new Error(data.error || '建單失敗');
 
-    // 建單成功 → 先跳成功頁，背景繼續送 sendMessages
-    showPage('page-success');
+    // 3. 在 1.5 秒等待期間，更新按鈕文字讓使用者知道進度
+    btn.textContent = '✍️ 資料寫入中，請稍候...';
+    await new Promise(r => setTimeout(r, 1500));
 
-    await new Promise(r => setTimeout(r, 2000));
+    // 4. 準備傳送 LINE 訊息時再次更新
+    btn.textContent = '💬 正在傳送 LINE 確認訊息...';
     await liff.sendMessages([{
       type: 'text',
       text: '✅ 我剛送出訂購，訂單編號：' + orderId
     }]);
 
+    // 5. 全部成功後才跳轉
+    showPage('page-success');
+    
   } catch (err) {
     console.error(err);
-    // 失敗才恢復按鈕讓用戶重試
-    isSubmitting        = false;
-    btn.disabled        = false;
-    btn.textContent     = '確認送出 🍍';
-    showToast('送出失敗，請再試一次');
+    isSubmitting = false;
+    btn.disabled = false;
+    btn.textContent = '確認送出 🍍';
+    showToast('送出失敗，請確認網路連線或稍後再試');
   }
 }
-    
 // =============================================
 // 頁面切換
 // =============================================
@@ -974,34 +977,49 @@ function selectProduct(type) {
  
 function goStep2() {
   if (!state.productType) { showToast('請先選擇商品'); return; }
- 
-  // 建立規格清單
+
   const prod = PRODUCTS[state.productType];
+  
+  // ─── 新增：清空地址與收件資訊 ───
+  document.getElementById('recv-name').value = '';
+  document.getElementById('recv-phone').value = '';
+  document.getElementById('recv-addr').value = '';
+  state.recvName = '';
+  state.recvPhone = '';
+  state.recvAddr = '';
+  
+  // ─── 新增：設定日期最小值為今天 ───
+  const today = new Date().toISOString().split('T')[0];
+  const dateInput = document.getElementById('recv-date');
+  dateInput.setAttribute('min', today);
+  dateInput.value = ''; // 每次進入都要重新選擇日期
+  state.recvDate = '';
+
+  // 建立規格清單
   const list = document.getElementById('spec-list');
   list.innerHTML = '';
   state.specId = '';
   state.qty    = 1;
   document.getElementById('qty-display').textContent = '1';
- 
- prod.specs.forEach(spec => {
-  const el = document.createElement('div');
-  el.className = 'spec-item';
-  el.id        = 'spec-' + spec.id;
-  el.innerHTML = `<span class="spec-name">${spec.label}</span><span class="spec-price">${spec.note || ''}</span>`;
-  el.onclick   = () => selectSpec(spec.id);
-  list.appendChild(el);
-});
- 
+
+  prod.specs.forEach(spec => {
+    const el = document.createElement('div');
+    el.className = 'spec-item';
+    el.id        = 'spec-' + spec.id;
+    el.innerHTML = `<span class="spec-name">${spec.label}</span><span class="spec-price">${spec.note || ''}</span>`;
+    el.onclick   = () => selectSpec(spec.id);
+    list.appendChild(el);
+  });
+
   document.getElementById('step2-title').textContent = prod.icon + ' ' + prod.name;
- 
-  // 配送方式（箱購才顯示）
+
+  // 配送方式顯示邏輯
   const showDel = prod.delivery;
   document.getElementById('delivery-section').style.display = showDel ? '' : 'none';
-  document.getElementById('shipping-section').style.display = showDel && state.delivery === 'home' ? '' : 'none';
- 
+  document.getElementById('shipping-section').style.display = 'none'; // 預設隱藏地址區，等點擊宅配再開
+
   showStep(2);
 }
- 
 // =============================================
 // Step 2：規格 & 配送
 // =============================================
@@ -1075,61 +1093,7 @@ function goStep3() {
   showStep(3);
 }
  
-// =============================================
-// 送出訂單 (替換版本)
-// =============================================
-async function submitOrder() {
-  const prod    = PRODUCTS[state.productType];
-  const spec    = prod.specs.find(s => s.id === state.specId);
-  const delText = !prod.delivery              ? '自取'
-                : state.delivery === 'pickup' ? '自取'
-                : '宅配到府';
 
-  const now     = new Date();
-  const dateStr = now.getFullYear().toString() +
-                  String(now.getMonth() + 1).padStart(2, '0') +
-                  String(now.getDate()).padStart(2, '0');
-  const rand    = Math.floor(Math.random() * 900) + 100;
-  const orderId = '#' + dateStr + '-' + rand;
-
-  const params = new URLSearchParams({
-    action:    'newOrder',
-    orderId:   orderId,
-    userId:    state.userId,
-    name:      state.userName,
-    phone:     state.userPhone,
-    isNewUser: state.isNewUser ? '1' : '0',
-    product:   prod.name,
-    spec:      spec.label,
-    qty:       String(state.qty),
-    delivery:  delText,
-    recvName:  state.recvName  || '',
-    recvPhone: state.recvPhone || '',
-    recvAddr:  state.recvAddr  || '',
-    recvDate:  state.recvDate  || ''
-  });
-
-  try {
-    const res  = await fetch(GAS_URL + '?' + params.toString());
-    const data = await res.json();
-
-    if (!data.ok) throw new Error(data.error || '建單失敗');
-
-    // 等 2 秒讓 Sheets 確實寫入後，再觸發 LINE Webhook
-    await new Promise(r => setTimeout(r, 2000));
-
-    await liff.sendMessages([{
-      type: 'text',
-      text: '✅ 我剛送出訂購，訂單編號：' + orderId
-    }]);
-
-    showPage('page-success');
-
-  } catch (err) {
-    console.error(err);
-    showToast('送出失敗，請再試一次');
-  }
-}
 // =============================================
 // 工具
 // =============================================
