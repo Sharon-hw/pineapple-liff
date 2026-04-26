@@ -1024,7 +1024,10 @@ async function submitOrder() {
       body:    JSON.stringify(orderData),
       mode:    'no-cors'
     });
-
+      
+    // 等 3 秒讓 GAS 有時間寫入 Sheets，再觸發 reply
+    await new Promise(r => setTimeout(r, 3000));
+    
     // 直接 sendMessages 觸發 GAS reply
     await liff.sendMessages([{
       type: 'text',
