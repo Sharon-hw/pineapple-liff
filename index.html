@@ -793,18 +793,37 @@ let state = {
 // =============================================
 async function initLiff() {
   const loadingText = document.querySelector('.loading-text');
-
   try {
-    // 1. LIFF 初始化
+    // 1. 顯示載入中狀態
     loadingText.textContent = 'LIFF 初始化中…';
-    await liff.init({ liffId: LIFF_ID });
-      .then(() => {
+    
+    // 2. 執行 LIFF 初始化 (修正語法結構)
+    await liff.init({ 
+      liffId: LIFF_ID,
+      withLoginOnExternalBrowser: true // 💡 增加相容性
+    });
+
     console.log("GitHub LIFF 載入成功");
-  })
-  .catch((err) => {
-    // 💡 如果卡住，請看手機有沒有噴出這個 alert
-    alert("跳轉後初始化失敗: " + err.code + " " + err.message);
-  });
+
+    // 3. 檢查是否登入
+    if (!liff.isLoggedIn()) {
+      loadingText.textContent = '正在引導登入...';
+      liff.login(); 
+    } else {
+      loadingText.textContent = '載入完成，準備開啟頁面...';
+      // 這裡可以呼叫你原本渲染頁面的邏輯
+      startApp(); 
+    }
+
+  } catch (err) {
+    // 💡 這裡是關鍵：如果初始化失敗，直接彈出警報
+    console.error("LIFF 初始化失敗:", err);
+    loadingText.textContent = '初始化失敗，請重新整理';
+    
+    // 增加詳細錯誤訊息，方便我們診斷
+    alert("初始化錯誤代碼: " + err.code + "\n訊息: " + err.message + "\n請確認是否在 LINE App 內開啟");
+  }
+}
 
     // 2. 登入檢查
     if (!liff.isLoggedIn()) {
