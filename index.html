@@ -798,6 +798,13 @@ async function initLiff() {
     // 1. LIFF 初始化
     loadingText.textContent = 'LIFF 初始化中…';
     await liff.init({ liffId: LIFF_ID });
+      .then(() => {
+    console.log("GitHub LIFF 載入成功");
+  })
+  .catch((err) => {
+    // 💡 如果卡住，請看手機有沒有噴出這個 alert
+    alert("跳轉後初始化失敗: " + err.code + " " + err.message);
+  });
 
     // 2. 登入檢查
     if (!liff.isLoggedIn()) {
