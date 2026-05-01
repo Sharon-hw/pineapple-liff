@@ -1028,7 +1028,7 @@ async function submitOrder() {
     if (!data.ok) throw new Error(data.error || '建單失敗');
 
     btn.textContent = '💬 傳送確認訊息...';
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 1500));
 
     await liff.sendMessages([{
       type: 'text',
