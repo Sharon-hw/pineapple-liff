@@ -734,33 +734,27 @@
 // =============================================
 // 設定
 // =============================================
-const LIFF_ID = '2009952707-MSMvoRCd'; // ← 填入你的 LIFF ID
-const GAS_URL  = 'https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec';
+const LIFF_ID = '2009952707-MSMvoRCd';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec';
+
 // =============================================
 // 商品資料
 // =============================================
 const PRODUCTS = {
   small: {
-    name: '少量訂購（自取）',
-    icon: '🍍',
-    specs: [
-      { id: 's1', label: '金鑽鳳梨', note: '$30/斤，依實際重量計算' }
-    ],
+    name: '少量訂購（自取）', icon: '🍍',
+    specs: [{ id: 's1', label: '金鑽鳳梨', note: '$30/斤，依實際重量計算' }],
     delivery: false,
     note: '自取，付款方式：現金・依實際重量結帳'
   },
   box: {
-    name: '箱購送禮',
-    icon: '📦',
-    specs: [
-      { id: 'b2', label: '整箱 8隻', note: '依實際重量計算' }
-    ],
+    name: '箱購送禮', icon: '📦',
+    specs: [{ id: 'b2', label: '整箱 8隻', note: '依實際重量計算' }],
     delivery: true,
     note: '出貨通知後約 3 個工作天到貨・依實際重量結帳'
   },
   sauce: {
-    name: '鳳梨豆豉醬（限量）',
-    icon: '🫙',
+    name: '鳳梨豆豉醬（限量）', icon: '🫙',
     specs: [
       { id: 'sc1', label: '小罐 200g', note: '$120' },
       { id: 'sc2', label: '大罐 400g', note: '$220' }
@@ -769,114 +763,72 @@ const PRODUCTS = {
     note: '限量，售完為止・需自取'
   }
 };
- 
+
 // =============================================
 // 狀態
 // =============================================
 let state = {
-  userId:       '',
-  userName:     '',
-  userPhone:    '',
-  isNewUser:    false,
-  productType:  '',   // small / box / sauce
-  specId:       '',
-  qty:          1,
-  delivery:     'home',  // home / pickup
-  recvName:     '',
-  recvPhone:    '',
-  recvAddr:  '',
-  recvDate:  ''
+  userId: '', userName: '', userPhone: '',
+  isNewUser: false, productType: '',
+  specId: '', qty: 1, delivery: 'home',
+  recvName: '', recvPhone: '', recvAddr: '', recvDate: ''
 };
- 
+
+let isSubmitting = false;
+
 // =============================================
-// LIFF 初始化
+// LIFF 初始化（結構完整版）
 // =============================================
 async function initLiff() {
   const loadingText = document.querySelector('.loading-text');
+
   try {
-    // 1. 顯示載入中狀態
     loadingText.textContent = 'LIFF 初始化中…';
-    
-    // 2. 執行 LIFF 初始化 (修正語法結構)
-    await liff.init({ 
-      liffId: LIFF_ID,
-      withLoginOnExternalBrowser: true // 💡 增加相容性
-    });
+    await liff.init({ liffId: LIFF_ID });
 
-    console.log("GitHub LIFF 載入成功");
-
-    // 3. 檢查是否登入
     if (!liff.isLoggedIn()) {
       loadingText.textContent = '正在引導登入...';
-      liff.login(); 
-    } else {
-      loadingText.textContent = '載入完成，準備開啟頁面...';
-      // 這裡可以呼叫你原本渲染頁面的邏輯
-      startApp(); 
-    }
-
-  } catch (err) {
-    // 💡 這裡是關鍵：如果初始化失敗，直接彈出警報
-    console.error("LIFF 初始化失敗:", err);
-    loadingText.textContent = '初始化失敗，請重新整理';
-    
-    // 增加詳細錯誤訊息，方便我們診斷
-    alert("初始化錯誤代碼: " + err.code + "\n訊息: " + err.message + "\n請確認是否在 LINE App 內開啟");
-  }
-}
-
-    // 2. 登入檢查
-    if (!liff.isLoggedIn()) {
       liff.login();
       return;
     }
 
-    // 3. 取得 LINE Profile
+    loadingText.textContent = '取得用戶資料…';
     const profile = await liff.getProfile();
-    state.userId = profile.userId;
+    state.userId  = profile.userId;
 
-    /// 4. 查詢後端會員資料
-loadingText.textContent = '查詢會員資料…';
-let found        = false;
-let userName     = '';
-let userPhone    = '';
-let recentOrderId = '';
+    loadingText.textContent = '查詢會員資料…';
+    let found         = false;
+    let userName      = '';
+    let userPhone     = '';
+    let recentOrderId = '';
 
-try {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), 5000);
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(
+        GAS_URL + '?action=getUser&userId=' + encodeURIComponent(state.userId),
+        { signal: controller.signal }
+      );
+      clearTimeout(tid);
+      const data    = await res.json();
+      found         = data.found         || false;
+      userName      = data.name          || '';
+      userPhone     = data.phone         || '';
+      recentOrderId = data.recentOrderId || '';
+    } catch (fetchErr) {
+      console.warn('查詢失敗或超時:', fetchErr);
+      found = false;
+    }
 
-  const res = await fetch(GAS_URL + '?action=getUser&userId=' + encodeURIComponent(state.userId), {
-        method: 'GET',
-        mode: 'cors',
-        signal: controller.signal
-      });
-      clearTimeout(id);
+    document.getElementById('loading').style.display = 'none';
 
-  const data   = await res.json();
-  found         = data.found        || false;
-  userName      = data.name         || '';
-  userPhone     = data.phone        || '';
-  recentOrderId = data.recentOrderId || '';
-
-} catch (fetchErr) {
-  console.warn('後端查詢失敗或超時:', fetchErr);
-  found = false;
-}
-
-// 5. 關閉 Loading
-document.getElementById('loading').style.display = 'none';
-
-// 6. 分流
-if (found) {
-  state.userName  = userName;
-  state.userPhone = userPhone;
-  state.isNewUser = false;
-
-  if (recentOrderId) {
-    // 顯示資訊並確保區塊是可見的
- document.getElementById('recent-order-info').textContent = '您的近期訂單：' + recentOrderId;
-        showPage('page-recent-order'); 
+    if (found) {
+      state.userName  = userName;
+      state.userPhone = userPhone;
+      state.isNewUser = false;
+      if (recentOrderId) {
+        document.getElementById('recent-order-info').textContent = '您的近期訂單：' + recentOrderId;
+        showPage('page-recent-order');
       } else {
         showStep(1);
       }
@@ -884,95 +836,17 @@ if (found) {
       state.isNewUser = true;
       showPage('page-register');
     }
-      
+
   } catch (err) {
-    // 嚴重錯誤處理
     console.error('LIFF Error:', err);
-    if (loadingText) loadingText.textContent = '❌ 初始化失敗: ' + err.message;
-    
-    // 備援方案：5秒後強行進入註冊頁
+    document.querySelector('.loading-text').textContent = '❌ 初始化失敗: ' + err.message;
     setTimeout(() => {
-      const loader = document.getElementById('loading');
-      if (loader) loader.style.display = 'none';
+      document.getElementById('loading').style.display = 'none';
       showPage('page-register');
     }, 5000);
   }
 }
 
-    // =============================================
-// 送出訂單（防重複送出）
-// =============================================
-let isSubmitting = false; // 全域防重複旗標
-
-async function submitOrder() {
-  if (isSubmitting) return; // 已在送出中，直接忽略
-  isSubmitting = true;
-
-  const btn = document.querySelector('.btn-next.gold');
-  btn.disabled    = true;
-  btn.textContent = '⌛ 正在建立訂單...';
-
-  const prod    = PRODUCTS[state.productType];
-  const spec    = prod.specs.find(s => s.id === state.specId);
-  const delText = !prod.delivery              ? '自取'
-                : state.delivery === 'pickup' ? '自取'
-                : '宅配到府';
-
-  const now     = new Date();
-  const dateStr = now.getFullYear().toString() +
-                  String(now.getMonth() + 1).padStart(2, '0') +
-                  String(now.getDate()).padStart(2, '0');
-  const rand    = Math.floor(Math.random() * 900) + 100;
-  const orderId = '#' + dateStr + '-' + rand;
-
-  const params = new URLSearchParams({
-    action:    'newOrder',
-    orderId:   orderId,
-    userId:    state.userId,
-    name:      state.userName,
-    phone:     state.userPhone,
-    isNewUser: state.isNewUser ? '1' : '0',
-    product:   prod.name,
-    spec:      spec.label,
-    qty:       String(state.qty),
-    delivery:  delText,
-    recvName:  state.recvName  || '',
-    recvPhone: state.recvPhone || '',
-    recvAddr:  state.recvAddr  || '',
-    recvDate:  state.recvDate  || ''
-  });
-try {
-    // 2. 呼叫 GAS API
-    const res  = await fetch(GAS_URL + '?' + params.toString());
-    const data = await res.json();
-
-    if (!data.ok) throw new Error(data.error || '建單失敗');
-
-    if (btn) {
-      btn.textContent = '✍️ 資料寫入中...';
-      // 強制讓瀏覽器休息 1 秒，確保使用者看得到這行字
-      await new Promise(r => setTimeout(r, 1000)); 
-
-      btn.textContent = '💬 傳送確認訊息...';
-      // 再休息 0.5 秒
-      await new Promise(r => setTimeout(r, 500));
-    }
-    await liff.sendMessages([{
-      type: 'text',
-      text: '✅ 我剛送出訂購，訂單編號：' + orderId
-    }]);
-
-    // 5. 全部成功後才跳轉
-    showPage('page-success');
-    
-  } catch (err) {
-    console.error(err);
-    isSubmitting = false;
-    btn.disabled = false;
-    btn.textContent = '確認送出 🍍';
-    showToast('送出失敗，請確認網路連線或稍後再試');
-  }
-}
 // =============================================
 // 頁面切換
 // =============================================
@@ -981,24 +855,22 @@ function showPage(id) {
   document.getElementById(id).classList.add('active');
   window.scrollTo(0, 0);
 }
- 
-function showStep(n) {
-  showPage('page-step' + n);
-}
- 
+
+function showStep(n) { showPage('page-step' + n); }
+
 // =============================================
 // 登記
 // =============================================
 function submitRegister() {
   const name  = document.getElementById('reg-name').value.trim();
   const phone = document.getElementById('reg-phone').value.trim();
-  if (!name)            { showToast('請輸入姓名'); return; }
-  if (!/^09\d{8}$/.test(phone)) { showToast('請輸入正確電話格式'); return; }
+  if (!name)                         { showToast('請輸入姓名'); return; }
+  if (!/^09\d{8}$/.test(phone))      { showToast('請輸入正確電話格式'); return; }
   state.userName  = name;
   state.userPhone = phone;
   showStep(1);
 }
- 
+
 // =============================================
 // Step 1：選商品
 // =============================================
@@ -1007,33 +879,22 @@ function selectProduct(type) {
   document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
   document.getElementById('prod-' + type).classList.add('selected');
 }
- 
+
 function goStep2() {
   if (!state.productType) { showToast('請先選擇商品'); return; }
 
-  const prod = PRODUCTS[state.productType];
-  // 修正：每次進入 Step 2 都把輸入框清空
-  const nameInput = document.getElementById('recv-name');
-  const phoneInput = document.getElementById('recv-phone');
-  const addrInput = document.getElementById('recv-addr');
+  const prod      = PRODUCTS[state.productType];
   const dateInput = document.getElementById('recv-date');
 
-  if (nameInput) nameInput.value = '';
-  if (phoneInput) phoneInput.value = '';
-  if (addrInput) addrInput.value = '';
-  if (dateInput) {
-    dateInput.value = '';
-    // 修正：限制不能選過去的日期
-    dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
-  }
-  
-  // 同步清空 state 變數
-  state.recvName = '';
-  state.recvPhone = '';
-  state.recvAddr = '';
-  state.recvDate = '';
+  document.getElementById('recv-name').value  = '';
+  document.getElementById('recv-phone').value = '';
+  document.getElementById('recv-addr').value  = '';
+  dateInput.value = '';
+  dateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
 
-  // 建立規格清單
+  state.recvName = ''; state.recvPhone = '';
+  state.recvAddr = ''; state.recvDate  = '';
+
   const list = document.getElementById('spec-list');
   list.innerHTML = '';
   state.specId = '';
@@ -1041,23 +902,21 @@ function goStep2() {
   document.getElementById('qty-display').textContent = '1';
 
   prod.specs.forEach(spec => {
-    const el = document.createElement('div');
-    el.className = 'spec-item';
-    el.id        = 'spec-' + spec.id;
-    el.innerHTML = `<span class="spec-name">${spec.label}</span><span class="spec-price">${spec.note || ''}</span>`;
-    el.onclick   = () => selectSpec(spec.id);
+    const el      = document.createElement('div');
+    el.className  = 'spec-item';
+    el.id         = 'spec-' + spec.id;
+    el.innerHTML  = `<span class="spec-name">${spec.label}</span><span class="spec-price">${spec.note || ''}</span>`;
+    el.onclick    = () => selectSpec(spec.id);
     list.appendChild(el);
   });
 
   document.getElementById('step2-title').textContent = prod.icon + ' ' + prod.name;
-
-  // 配送方式顯示邏輯
-  const showDel = prod.delivery;
-  document.getElementById('delivery-section').style.display = showDel ? '' : 'none';
-  document.getElementById('shipping-section').style.display = 'none'; // 預設隱藏地址區，等點擊宅配再開
+  document.getElementById('delivery-section').style.display = prod.delivery ? '' : 'none';
+  document.getElementById('shipping-section').style.display = 'none';
 
   showStep(2);
 }
+
 // =============================================
 // Step 2：規格 & 配送
 // =============================================
@@ -1066,19 +925,19 @@ function selectSpec(id) {
   document.querySelectorAll('.spec-item').forEach(el => el.classList.remove('selected'));
   document.getElementById('spec-' + id).classList.add('selected');
 }
- 
+
 function changeQty(delta) {
   state.qty = Math.max(1, Math.min(99, state.qty + delta));
   document.getElementById('qty-display').textContent = state.qty;
 }
- 
+
 function selectDelivery(type) {
   state.delivery = type;
   document.getElementById('del-home').classList.toggle('selected',   type === 'home');
   document.getElementById('del-pickup').classList.toggle('selected', type === 'pickup');
   document.getElementById('shipping-section').style.display = type === 'home' ? '' : 'none';
 }
- 
+
 function goStep3() {
   if (!state.specId) { showToast('請選擇規格'); return; }
 
@@ -1119,7 +978,6 @@ function goStep3() {
     <div class="summary-row"><span class="summary-key">地址</span><span class="summary-val">${state.recvAddr}</span></div>`;
   }
 
-  // 結帳說明取代固定金額
   rows += `
     <div class="summary-row total-row">
       <span class="summary-key">費用</span>
@@ -1127,28 +985,79 @@ function goStep3() {
     </div>`;
 
   document.getElementById('summary-content').innerHTML = rows;
-  document.getElementById('summary-note').textContent = '📌 ' + prod.note;
+  document.getElementById('summary-note').textContent  = '📌 ' + prod.note;
   showStep(3);
 }
- 
+
+// =============================================
+// 送出訂單
+// =============================================
+async function submitOrder() {
+  if (isSubmitting) return;
+  isSubmitting = true;
+
+  const btn = document.querySelector('.btn-next.gold');
+  btn.disabled    = true;
+  btn.textContent = '⌛ 正在建立訂單...';
+
+  const prod    = PRODUCTS[state.productType];
+  const spec    = prod.specs.find(s => s.id === state.specId);
+  const delText = !prod.delivery              ? '自取'
+                : state.delivery === 'pickup' ? '自取'
+                : '宅配到府';
+
+  const now     = new Date();
+  const dateStr = now.getFullYear().toString() +
+                  String(now.getMonth() + 1).padStart(2, '0') +
+                  String(now.getDate()).padStart(2, '0');
+  const orderId = '#' + dateStr + '-' + (Math.floor(Math.random() * 900) + 100);
+
+  const params = new URLSearchParams({
+    action: 'newOrder', orderId,
+    userId: state.userId, name: state.userName, phone: state.userPhone,
+    isNewUser: state.isNewUser ? '1' : '0',
+    product: prod.name, spec: spec.label, qty: String(state.qty),
+    delivery: delText,
+    recvName: state.recvName || '', recvPhone: state.recvPhone || '',
+    recvAddr: state.recvAddr || '', recvDate: state.recvDate   || ''
+  });
+
+  try {
+    const res  = await fetch(GAS_URL + '?' + params.toString());
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || '建單失敗');
+
+    btn.textContent = '💬 傳送確認訊息...';
+    await new Promise(r => setTimeout(r, 1500));
+
+    await liff.sendMessages([{
+      type: 'text',
+      text: '✅ 我剛送出訂購，訂單編號：' + orderId
+    }]);
+
+    showPage('page-success');
+
+  } catch (err) {
+    console.error(err);
+    isSubmitting    = false;
+    btn.disabled    = false;
+    btn.textContent = '確認送出 🍍';
+    showToast('送出失敗，請再試一次');
+  }
+}
 
 // =============================================
 // 工具
 // =============================================
-function closeLiff() {
-  liff.closeWindow();
-}
- 
+function closeLiff() { liff.closeWindow(); }
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
 }
- 
-// =============================================
-// 啟動
-// =============================================
+
 window.addEventListener('load', initLiff);
 </script>
 </body>
