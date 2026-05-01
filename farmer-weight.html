@@ -151,7 +151,7 @@ async function loadOrderList() {
     data.orders.forEach(ord => {
       const card = document.createElement('div');
       card.className = 'order-card';
-      const isSauce = ord.item.includes('豆豉');
+      const isSauce = ord.item.includes('罐');
       const needsWeight = !ord.weight && !isSauce;
       
       card.innerHTML = `
@@ -187,7 +187,7 @@ async function loadSingleOrder(orderId) {
     document.getElementById('display-item').textContent = currentOrder.item;
     document.getElementById('display-delivery').textContent = currentOrder.delivery;
     
-    const isSauce = currentOrder.item.indexOf('豆豉') > -1;
+    const isSauce = currentOrder.item.indexOf('罐') > -1;
     if (isSauce) {
       document.getElementById('weight-section').style.display = 'none';
       document.getElementById('sauce-section').style.display = 'block';
@@ -231,7 +231,7 @@ async function submitWeight() {
   const weight = document.getElementById('weight-input').value;
   const submitBtn = document.querySelector('.btn-submit');
   
-  if (!currentOrder.item.includes('豆豉') && !weight) {
+  if (!currentOrder.item.includes('罐') && !weight) {
     alert('請輸入實際重量');
     return;
   }
