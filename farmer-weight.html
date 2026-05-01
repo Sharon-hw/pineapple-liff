@@ -105,7 +105,7 @@
   <div style="font-size:60px; margin-bottom:20px;">📦</div>
   <h2>處理完成！</h2>
   <p id="success-msg" style="margin:15px 0; color:var(--text-muted);"></p>
-  <button class="btn-submit" style="max-width:200px" onclick="location.reload()">處理下一筆</button>
+  <button class="btn-submit" style="max-width:200px" onclick="goBackToList()">處理下一筆</button>
 </div>
 
 <script>
@@ -187,10 +187,17 @@ async function loadSingleOrder(orderId) {
     document.getElementById('display-item').textContent = currentOrder.item;
     document.getElementById('display-delivery').textContent = currentOrder.delivery;
     
-    const isSauce = currentOrder.item.includes('豆豉');
-    document.getElementById('weight-section').style.display = isSauce ? 'none' : 'block';
-    document.getElementById('sauce-section').style.display = isSauce ? 'block' : 'none';
-
+    const isSauce = currentOrder.item.indexOf('豆豉') > -1;
+    if (isSauce) {
+      document.getElementById('weight-section').style.display = 'none';
+      document.getElementById('sauce-section').style.display = 'block';
+      // 豆豉醬不需填重量，清除可能殘留的數值
+      document.getElementById('weight-input').value = ''; 
+    } else {
+      document.getElementById('weight-section').style.display = 'block';
+      document.getElementById('sauce-section').style.display = 'none';
+    }
+    
     document.getElementById('loading').style.display = 'none';
     showPage('page-weight');
   } catch (e) {
@@ -198,6 +205,19 @@ async function loadSingleOrder(orderId) {
     loadOrderList();
   }
 }
+
+// 修正「處理下一筆」的邏輯
+function goBackToList() {
+  // 不要用 location.reload()，因為 URL 可能帶著舊的 orderId
+  // 改為直接初始化清單頁面並清空當前訂單狀態
+  currentOrder = null;
+  const url = new URL(window.location.href);
+  url.searchParams.delete('orderId'); // 清除網址上的 ID
+  window.history.replaceState({}, '', url); // 更新網址但不刷新頁面
+
+  showPage('page-list');
+  loadOrderList(); // 重新載入最新清單
+}  
 
 function calcTotal() {
   const w = parseFloat(document.getElementById('weight-input').value) || 0;
