@@ -231,8 +231,7 @@ async function submitWeight() {
   const weight = document.getElementById('weight-input').value;
   const submitBtn = document.querySelector('.btn-submit');
   
-  const isSauce = currentOrder.item.indexOf('罐') > -1 || currentOrder.item.indexOf('罐') > -1;
-  
+  const isSauce = currentOrder.item.indexOf('罐') > -1;
   if (!isSauce && !weight) {
     alert('請輸入實際重量');
     return;
@@ -259,7 +258,7 @@ async function submitWeight() {
 
     // 只要成功執行到這，就顯示成功
     document.getElementById('success-msg').textContent = `${currentOrder.name} 的訂單已更新！`;
-    showPage('page-success');[cite: 1]
+    showPage('page-success');
 
   } catch (e) {
     console.error('傳送錯誤:', e);
