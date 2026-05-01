@@ -151,7 +151,7 @@ async function loadOrderList() {
     data.orders.forEach(ord => {
       const card = document.createElement('div');
       card.className = 'order-card';
-      const isSauce = ord.product.includes('豆豉');
+      const isSauce = ord.item.includes('豆豉');
       const needsWeight = !ord.weight && !isSauce;
       
       card.innerHTML = `
@@ -161,7 +161,7 @@ async function loadOrderList() {
         </div>
         <div class="order-body">
           <b>${ord.name}</b> (${ord.delivery})<br>
-          <span style="color:var(--green-mid)">${ord.product} ${ord.spec} x${ord.qty}</span>
+          <span style="color:var(--green-mid)">${ord.item} ${ord.spec} x${ord.qty}</span>
         </div>
         <div class="order-footer">
           <button class="btn-sm btn-weight" onclick="loadSingleOrder('${ord.orderId}')">
@@ -184,10 +184,10 @@ async function loadSingleOrder(orderId) {
     
     // 欄位對接 (對應 GAS 回傳的 key)
     document.getElementById('display-name').textContent = currentOrder.name;
-    document.getElementById('display-item').textContent = currentOrder.product + ' ' + currentOrder.spec;
+    document.getElementById('display-item').textContent = currentOrder.item;
     document.getElementById('display-delivery').textContent = currentOrder.delivery;
     
-    const isSauce = currentOrder.product.includes('豆豉');
+    const isSauce = currentOrder.item.includes('豆豉');
     document.getElementById('weight-section').style.display = isSauce ? 'none' : 'block';
     document.getElementById('sauce-section').style.display = isSauce ? 'block' : 'none';
 
@@ -211,7 +211,7 @@ async function submitWeight() {
   const weight = document.getElementById('weight-input').value;
   const submitBtn = document.querySelector('.btn-submit');
   
-  if (!currentOrder.product.includes('豆豉') && !weight) {
+  if (!currentOrder.item.includes('豆豉') && !weight) {
     alert('請輸入實際重量');
     return;
   }
