@@ -250,16 +250,16 @@ async function submitWeight() {
       customerLineId: currentOrder.customerLineId || '' // 務必帶上這個，後端推播才不會出錯
     });
 
-    // 移除 no-cors，改用普通 POST 請求
-    await fetch(GAS_URL, {
+    // 移除 no-cors 模式，改用標準 fetch
+    const response = await fetch(GAS_URL, {
       method: 'POST',
       body: params,
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
-    // 只要沒有跳到 catch，就代表請求已發出[cite: 1]
+    // 只要成功執行到這，就顯示成功
     document.getElementById('success-msg').textContent = `${currentOrder.name} 的訂單已更新！`;
-    showPage('page-success'); // 切換到成功頁面[cite: 1]
+    showPage('page-success');[cite: 1]
 
   } catch (e) {
     console.error('傳送錯誤:', e);
