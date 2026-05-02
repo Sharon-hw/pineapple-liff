@@ -123,10 +123,22 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQ
 let currentOrder = null;
 
 async function initLiff() {
+  const loadingEl = document.getElementById('loading');                              
+ const loadingText = loadingEl.querySelector('.loading-text');                      
+ loadingText.textContent = '初始化 LIFF…';   
   try {
-    await liff.init({ liffId: FARMER_LIFF_ID });
+    await Promise.race([                                                             
+ liff.init({ liffId: FARMER_LIFF_ID }),                                         
+new Promise((_, reject) =>                                                     
+setTimeout(() => reject(new Error('LIFF init 逾時（超過 15 秒），請確認網路或
+  LIFF ID 是否正確')), 15000)                                                         
+   )                                                                              
+ ]);                                                                              
+                                                                                    
+ loadingText.textContent = '確認登入狀態…'; 
     if (!liff.isLoggedIn()) { liff.login(); return; }
 
+    loadingText.textContent = '讀取農場資料中…'; 
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = urlParams.get('orderId');
 
@@ -136,8 +148,8 @@ async function initLiff() {
       loadOrderList();
     }
   } catch (err) {
-    document.getElementById('loading').style.display = 'none';
-    alert('LIFF 載入失敗: ' + err.message);
+     loadingEl.style.display = 'none';                                                
+     alert('載入失敗：' + err.message); 
   }
 }
 
