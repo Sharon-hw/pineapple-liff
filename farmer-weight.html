@@ -221,10 +221,9 @@ async function confirmOrderDirectly(orderId, customerLineId) {
 
   btn.disabled = true;
   btn.textContent = '處理中...';
-
+  const url = `${GAS_URL}?action=confirmOrder&orderId=${encodeURIComponent(orderId)}&customerLineId=${encodeURIComponent(customerLineId)}`;
+  
   try {
-    // 對接 GAS 現有的 action=confirmOrder
-    const url = `${GAS_URL}?action=confirmOrder&orderId=${encodeURIComponent(orderId)}&customerLineId=${encodeURIComponent(customerLineId)}`;
     const res = await fetch(url);
     const data = await res.json();
 
