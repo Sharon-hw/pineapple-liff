@@ -203,15 +203,16 @@ async function loadOrderList() {
           <span style="color:var(--green-mid)">${ord.item}<br>需求時間：${formattedDate}</span>
         </div>
         <div class="order-footer">
-      <button id="btn-${ord.orderId}" class="btn-sm btn-weight" onclick="${clickAction}">
-        ${buttonText}
-      </button>
-      <button class="btn-sm" style="background:#FFE0E0;color:#C0392B"       
-                                              
-  onclick="rejectOrderDirectly('${ord.orderId}','${ord.customerLineId}')">      
-            ❌ 拒絕                       
-          </button> 
-    </div>
+      <button id="btn-${ord.orderId}" class="btn-sm btn-weight"                   
+  onclick="${clickAction}">                                                     
+      ${buttonText}                                                             
+    </button>                       
+    ${ord.status === '待確認' ? `             
+    <button class="btn-sm" style="background:#FFE0E0;color:#C0392B"
+      onclick="rejectOrderDirectly('${ord.orderId}','${ord.customerLineId}')">
+      ❌ 拒絕                                                                   
+    </button>` : ''}                      
+  </div>           
       `;
       container.appendChild(card);
     });
