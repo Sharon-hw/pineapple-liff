@@ -254,7 +254,18 @@
     line-height: 1;
   }
   .qty-btn:active { background: var(--green-mid); color: #fff; transform: scale(0.92); }
-  .qty-num { font-size: 18px; font-weight: 700; min-width: 28px; text-align: center; }
+  .qty-num {                                                                    
+    width: 48px;                    
+    min-width: 28px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;                                                           
+    -moz-appearance: textfield;
+  }                                                                             
+  .qty-num::-webkit-inner-spin-button,
+  .qty-num::-webkit-outer-spin-button { -webkit-appearance: none; }
  
   /* ── 配送方式 ── */
   .delivery-row { display: flex; gap: 10px; }
@@ -635,7 +646,8 @@
       <span class="qty-label">訂購數量</span>
       <div class="qty-ctrl">
         <button class="qty-btn" onclick="changeQty(-1)">−</button>
-        <span class="qty-num" id="qty-display">1</span>
+        <input type="number" class="qty-num" id="qty-display"
+         value="1" min="1" inputmode="nu
         <button class="qty-btn" onclick="changeQty(1)">+</button>
       </div>
     </div>
@@ -899,7 +911,7 @@ function goStep2() {
   list.innerHTML = '';
   state.specId = '';
   state.qty    = 1;
-  document.getElementById('qty-display').textContent = '1';
+  document.getElementById('qty-display').value = '1';
 
   prod.specs.forEach(spec => {
     const el      = document.createElement('div');
@@ -927,10 +939,15 @@ function selectSpec(id) {
 }
 
 function changeQty(delta) {
-  state.qty = Math.max(1, Math.min(99, state.qty + delta));
-  document.getElementById('qty-display').textContent = state.qty;
-}
-
+  const el  = document.getElementById('qty-display');
+    let qty   = parseInt(el.value) + delta;
+    if (qty < 1) qty = 1;
+    el.value  = qty;
+  }
+function validateQty(el) {
+    const v = parseInt(el.value);
+    el.value = (isNaN(v) || v < 1) ? 1 : Math.floor(v);
+  }   
 function selectDelivery(type) {
   state.delivery = type;
   document.getElementById('del-home').classList.toggle('selected',   type === 'home');
