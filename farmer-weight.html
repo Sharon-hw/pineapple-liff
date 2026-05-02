@@ -153,6 +153,23 @@ async function loadOrderList() {
     data.orders.forEach(ord => {
       const card = document.createElement('div');
       card.className = 'order-card';
+
+// --- 新增日期格式化邏輯 ---
+  let formattedDate = '-';
+  if (ord.date) {
+    const d = new Date(ord.date);
+    // 確保日期物件有效後進行格式化
+    if (!isNaN(d.getTime())) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      formattedDate = `${yyyy}/${mm}/${dd}`;
+    } else {
+      // 如果 ord.date 本身就是字串且格式固定，也可嘗試直接處理字串
+      formattedDate = String(ord.date).split('T')[0].replace(/-/g, '/');
+    }
+  }
+  // -----------------------
       
       // --- 訂單狀態呈現邏輯 ---
       // 若狀態為「待確認」，顯示為「待確認」
@@ -182,7 +199,7 @@ async function loadOrderList() {
         </div>
         <div class="order-body">
           <b>${ord.name}</b> (${ord.delivery})<br>
-          <span style="color:var(--green-mid)">${ord.item} 需求時間：${ord.date}</span>
+          <span style="color:var(--green-mid)">${ord.item}\n 需求時間：${formattedDate}}</span>
         </div>
         <div class="order-footer">
       <button id="btn-${ord.orderId}" class="btn-sm btn-weight" onclick="${clickAction}">
