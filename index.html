@@ -583,8 +583,8 @@
       <div class="product-card" id="prod-small" onclick="selectProduct('small')">
         <div class="product-icon green">🍍</div>
         <div class="product-info">
-          <div class="product-name">少量訂購</div>
-          <div class="product-desc">自取・1隻、2隻...;高雄大量訂購可依距離評估是否提供宅配服務，最終以阿閎確認為準。</div>
+          <div class="product-name">少量訂購/批量訂購</div>
+          <div class="product-desc">1隻、2隻...皆可；高雄地區宅配依距離評估，以阿閎確認為準。</div>
         </div>
         <div class="product-check">✓</div>
       </div>
@@ -755,10 +755,10 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQ
 // =============================================
 const PRODUCTS = {
   small: {
-    name: '少量訂購（自取）', icon: '🍍',
+    name: '少量訂購（自取）/ 批量訂購', icon: '🍍',
     specs: [{ id: 's1', label: '金鑽鳳梨', note: '$30/斤，依實際重量計算' }],
-    delivery: false,
-    note: '自取，付款方式：現金・依實際重量結帳'
+    delivery: true,
+    note: '依實際重量結帳・宅配需依距離評估，最終以阿閎確認為準'
   },
   box: {
     name: '箱購送禮', icon: '📦',
