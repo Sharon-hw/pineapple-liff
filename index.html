@@ -989,10 +989,12 @@ function goStep3() {
     <div class="summary-row"><span class="summary-key">地址</span><span class="summary-val">${state.recvAddr}</span></div>`;
   }
 
-  rows += `
+ const feeText = (spec.label && spec.label.indexOf('罐') > -1) ? '$150' : '依實際重量結帳';
+
+rows += `
     <div class="summary-row total-row">
       <span class="summary-key">費用</span>
-      <span class="summary-val" style="font-size:13px;color:var(--text-muted)">依實際重量結帳</span>
+      <span class="summary-val" style="font-size:13px;color:var(--text-muted)">${feeText}</span>
     </div>`;
 
   document.getElementById('summary-content').innerHTML = rows;
