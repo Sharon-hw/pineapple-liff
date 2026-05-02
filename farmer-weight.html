@@ -206,6 +206,11 @@ async function loadOrderList() {
       <button id="btn-${ord.orderId}" class="btn-sm btn-weight" onclick="${clickAction}">
         ${buttonText}
       </button>
+      <button class="btn-sm" style="background:#FFE0E0;color:#C0392B"       
+                                              
+  onclick="rejectOrderDirectly('${ord.orderId}','${ord.customerLineId}')">      
+            ❌ 拒絕                       
+          </button> 
     </div>
       `;
       container.appendChild(card);
@@ -241,6 +246,26 @@ async function confirmOrderDirectly(orderId, customerLineId) {
     btn.textContent = '👉 確認處理';
   }
 }
+
+  async function rejectOrderDirectly(orderId, customerLineId) {                 
+    if (!confirm(`確定要拒絕訂單 ${orderId}   
+  嗎？\n客戶將會收到無法接單的通知。`)) return;                                 
+                                          
+    const url = `${GAS_URL}?action=rejectOrder&orderId=${encodeURIComponent(orde
+  rId)}&customerLineId=${encodeURIComponent(customerLineId)}`;                  
+    try {                                                                       
+      const res  = await fetch(url);                                            
+      const data = await res.json();
+      if (data.ok) {                                                            
+        alert('已拒絕訂單，客戶已收到通知。');
+        loadOrderList();
+      } else {                                                                  
+        throw new Error(data.message || '操作失敗');
+      }                                                                         
+    } catch (e) {                   
+      alert('拒絕失敗：' + e.message);                                          
+    }                                         
+  }         
   
 async function loadSingleOrder(orderId) {
   document.getElementById('loading').style.display = 'flex';
