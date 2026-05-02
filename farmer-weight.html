@@ -218,7 +218,7 @@ async function loadOrderList() {
         </div>
       `;
 
-      card.querySelector(`#btn-${ord.orderId}`).addEventListener('click', () => {
+      card.querySelector(`[id="btn-${ord.orderId}"]`).addEventListener('click', () => {
         if (ord.status === '待確認') {
           confirmOrderDirectly(ord.orderId, ord.customerLineId);
         } else {
@@ -226,7 +226,7 @@ async function loadOrderList() {
         }
       });
 
-      const rejectBtn = card.querySelector(`#btn-reject-${ord.orderId}`);
+      const rejectBtn = card.querySelector(`[id="btn-reject-${ord.orderId}"]`);
       if (rejectBtn) {
         rejectBtn.addEventListener('click', () => rejectOrderDirectly(ord.orderId, ord.customerLineId));
       }
