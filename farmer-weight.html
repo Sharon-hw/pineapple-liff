@@ -16,7 +16,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Noto Sans TC', sans-serif; background: var(--cream); color: var(--text-main); min-height: 100vh; padding-bottom: 40px; }
 
-    /* 清單專用樣式 */
     .order-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 5px solid var(--gold); }
     .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .order-id { font-size: 11px; color: var(--text-muted); font-family: monospace; }
@@ -26,10 +25,9 @@
     .order-footer { margin-top: 12px; display: flex; gap: 8px; }
     .btn-sm { flex: 1; padding: 8px; border-radius: 8px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; }
     .btn-weight { background: var(--gold); color: var(--green-dark); }
-    .status-confirming { background: #E1F5FE; color: #0288D1; } /* 淺藍色 - 待確認 */
-    .status-weighting { background: #FFF9C4; color: #FBC02D; }  /* 淺黃色 - 待秤重 */
-    
-    /* 修正原本未閉合的 CSS */
+    .status-confirming { background: #E1F5FE; color: #0288D1; }
+    .status-weighting { background: #FFF9C4; color: #FBC02D; }
+
     .header { background: var(--green-dark); padding: 20px 20px 28px; position: relative; overflow: hidden; }
     .header::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 20px; background: var(--cream); border-radius: 20px 20px 0 0; }
     .logo { font-family: 'Noto Serif TC', serif; font-size: 22px; font-weight: 700; color: #fff; letter-spacing: 2px; }
@@ -47,11 +45,18 @@
     .total-preview { background: rgba(45,106,79,0.06); border: 2px solid var(--green-light); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; text-align: center; display: none; }
     .amount { font-size: 28px; font-weight: 700; color: var(--green-dark); }
     .btn-submit { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--gold); font-size: 16px; font-weight: 700; color: var(--green-dark); cursor: pointer; }
-    
+
     #loading { position: fixed; inset: 0; background: var(--cream); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+    /* FIX #CSS: added missing @keyframes for loading animation */
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-12px); }
+    }
     .page { display: none; }
     .page.active { display: block; }
     .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
+    /* FIX #11: render \n as visible line break in success message */
+    #success-msg { white-space: pre-line; }
   </style>
 </head>
 <body>
@@ -66,7 +71,6 @@
   <div style="font-size:12px; color: rgba(255,255,255,0.6);">訂單確認與秤重中心</div>
 </div>
 
-<!-- 頁面結構保持不變... -->
 <div id="page-list" class="page">
   <div style="padding: 16px;">
     <h3 style="margin-bottom:12px; color: var(--green-dark);">📋 待處理項目</h3>
@@ -82,9 +86,9 @@
       <div class="info-row"><span class="info-key">客戶</span><span class="info-val" id="display-name">—</span></div>
       <div class="info-row"><span class="info-key">品項</span><span class="info-val" id="display-item">—</span></div>
       <div class="info-row"><span class="info-key">配送</span><span class="info-val" id="display-delivery">—</span></div>
-      <div class="info-row"><span class="info-key">需求時間</span><span class="info-val" id="display-date">—</span></div>      
+      <div class="info-row"><span class="info-key">需求時間</span><span class="info-val" id="display-date">—</span></div>
     </div>
-    
+
     <div id="weight-section">
       <div class="field">
         <label>實際重量（斤）</label>
@@ -99,7 +103,8 @@
 
     <div id="sauce-section" style="display:none; text-align:center;">
       <p style="color:var(--gold); font-weight:700; margin-bottom:20px;">此品項為豆豉醬，不需秤重</p>
-      <button class="btn-submit" onclick="submitWeight()">✅ 直接確認通知</button>
+      <!-- FIX #5: added id so submitWeight can find the correct button -->
+      <button class="btn-submit" id="submit-btn-sauce" onclick="submitWeight()">✅ 直接確認通知</button>
     </div>
   </div>
 </div>
@@ -113,7 +118,7 @@
 
 <script>
 const FARMER_LIFF_ID = '2009952707-VhlOHcQ1';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec'; // 確保填入最新的部署網址
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQq4m2lTF1keTqUIAtpe3D03uAZBPIotj7tnkuz3GIrUcK6g/exec';
 
 let currentOrder = null;
 
@@ -139,18 +144,18 @@ async function initLiff() {
 async function loadOrderList() {
   const container = document.getElementById('order-container');
   container.innerHTML = '<div class="empty-state">讀取中...</div>';
-  
+
+  // FIX #1 & #3: removed broken duplicate AbortController block and incomplete
+  // `document.getElementByI` statement; kept single clean fetch with proper timeout
+  // FIX #12: added AbortController so hung GAS requests don't freeze the UI
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), 10000);
+
   try {
-    const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), 10000);  // 10 秒逾時    
-      const res  = await fetch(`${GAS_URL}?action=getPendingOrders`, { signal:
-  controller.signal });                                                         
-      clearTimeout(tid);            
-      const data = await res.json();                                            
-      document.getElementByI
-    
-    const res = await fetch(`${GAS_URL}?action=getPendingOrders`);
+    const res = await fetch(`${GAS_URL}?action=getPendingOrders`, { signal: controller.signal });
+    clearTimeout(tid);
     const data = await res.json();
+
     document.getElementById('loading').style.display = 'none';
     showPage('page-list');
 
@@ -164,44 +169,33 @@ async function loadOrderList() {
       const card = document.createElement('div');
       card.className = 'order-card';
 
-// --- 新增日期格式化邏輯 ---
-  let formattedDate = '-';
-  if (ord.date) {
-    const d = new Date(ord.date);
-    // 確保日期物件有效後進行格式化
-    if (!isNaN(d.getTime())) {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      formattedDate = `${yyyy}/${mm}/${dd}`;
-    } else {
-      // 如果 ord.date 本身就是字串且格式固定，也可嘗試直接處理字串
-      formattedDate = String(ord.date).split('T')[0].replace(/-/g, '/');
-    }
-  }
-  // -----------------------
-      
-      // --- 訂單狀態呈現邏輯 ---
-      // 若狀態為「待確認」，顯示為「待確認」
-      // 若狀態為「已確認」，呈現為「待秤重」
+      let formattedDate = '-';
+      if (ord.date) {
+        const d = new Date(ord.date);
+        if (!isNaN(d.getTime())) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          formattedDate = `${yyyy}/${mm}/${dd}`;
+        } else {
+          formattedDate = String(ord.date).split('T')[0].replace(/-/g, '/');
+        }
+      }
+
       let displayStatus = '待處理';
       let badgeClass = 'status-wait';
       let buttonText = '👉 確認處理';
-      // 決定按鈕行為：是直接確認還是進入秤重頁
-      let clickAction = `confirmOrderDirectly('${ord.orderId}', '${ord.customerLineId}')`;
 
       if (ord.status === '待確認') {
-    displayStatus = '待確認';
-    badgeClass = 'status-confirming';
-    buttonText = '👉 確認處理';
-    clickAction = `confirmOrderDirectly('${ord.orderId}', '${ord.customerLineId}')`; // 觸發確認流程
-  } else if (ord.status === '已確認') {
-    displayStatus = '待秤重';
-    badgeClass = 'status-weighting';
-    buttonText = '⚖️ 秤重處理';
-    clickAction = `loadSingleOrder('${ord.orderId}')`; // 進入秤重頁面
-  }
-      
+        displayStatus = '待確認';
+        badgeClass = 'status-confirming';
+        buttonText = '👉 確認處理';
+      } else if (ord.status === '已確認') {
+        displayStatus = '待秤重';
+        badgeClass = 'status-weighting';
+        buttonText = '⚖️ 秤重處理';
+      }
+
       card.innerHTML = `
         <div class="order-header">
           <span class="order-id">${ord.orderId}</span>
@@ -212,42 +206,55 @@ async function loadOrderList() {
           <span style="color:var(--green-mid)">${ord.item}<br>需求時間：${formattedDate}</span>
         </div>
         <div class="order-footer">
-      <button id="btn-${ord.orderId}" class="btn-sm btn-weight"                   
-  onclick="${clickAction}">                                                     
-      ${buttonText}                                                             
-    </button>                       
-    ${ord.status === '待確認' ? `             
-    <button class="btn-sm" style="background:#FFE0E0;color:#C0392B"
-      onclick="rejectOrderDirectly('${ord.orderId}','${ord.customerLineId}')">
-      ❌ 拒絕                                                                   
-    </button>` : ''}                      
-  </div>           
+          <button id="btn-${ord.orderId}" class="btn-sm btn-weight">${buttonText}</button>
+          ${ord.status === '待確認' ? `
+          <button id="btn-reject-${ord.orderId}" class="btn-sm" style="background:#FFE0E0;color:#C0392B">❌ 拒絕</button>
+          ` : ''}
+        </div>
       `;
+
+      // FIX #9: use addEventListener instead of inline onclick to avoid quote-escaping
+      // and XSS risks with dynamic order IDs / customer IDs
+      card.querySelector(`#btn-${ord.orderId}`).addEventListener('click', () => {
+        if (ord.status === '待確認') {
+          confirmOrderDirectly(ord.orderId, ord.customerLineId);
+        } else {
+          loadSingleOrder(ord.orderId);
+        }
+      });
+
+      const rejectBtn = card.querySelector(`#btn-reject-${ord.orderId}`);
+      if (rejectBtn) {
+        rejectBtn.addEventListener('click', () => rejectOrderDirectly(ord.orderId, ord.customerLineId));
+      }
+
       container.appendChild(card);
     });
   } catch (e) {
-    document.getElementById('loading').style.display = 'none';  // ← 加       
-      showPage('page-list');  
+    clearTimeout(tid);
+    document.getElementById('loading').style.display = 'none';
+    showPage('page-list');
     container.innerHTML = '<div class="empty-state">連線 GAS 發生錯誤</div>';
   }
 }
 
 async function confirmOrderDirectly(orderId, customerLineId) {
-  // 防止重複點擊
-  const btn = document.getElementById(`btn-${orderId}`);
+  // FIX #8: check confirm before accessing btn, and guard against null btn
   if (!confirm(`確定要確認訂單 ${orderId} 嗎？`)) return;
+  const btn = document.getElementById(`btn-${orderId}`);
+  if (!btn) return;
 
   btn.disabled = true;
   btn.textContent = '處理中...';
   const url = `${GAS_URL}?action=confirmOrder&orderId=${encodeURIComponent(orderId)}&customerLineId=${encodeURIComponent(customerLineId)}`;
-  
+
   try {
     const res = await fetch(url);
     const data = await res.json();
 
     if (data.ok) {
       alert('訂單已確認，客戶已收到通知！');
-      loadOrderList(); // 重新整理清單，該筆會變成「待秤重」
+      loadOrderList();
     } else {
       throw new Error(data.message || '更新失敗');
     }
@@ -259,97 +266,95 @@ async function confirmOrderDirectly(orderId, customerLineId) {
   }
 }
 
-  async function rejectOrderDirectly(orderId, customerLineId) {                 
-    if (!confirm(`確定要拒絕訂單 ${orderId}   
-  嗎？\n客戶將會收到無法接單的通知。`)) return;                                 
-                                          
-    const url = `${GAS_URL}?action=rejectOrder&orderId=${encodeURIComponent(orde
-  rId)}&customerLineId=${encodeURIComponent(customerLineId)}`;                  
-    try {                                                                       
-      const res  = await fetch(url);                                            
-      const data = await res.json();
-      if (data.ok) {                                                            
-        alert('已拒絕訂單，客戶已收到通知。');
-        loadOrderList();
-      } else {                                                                  
-        throw new Error(data.message || '操作失敗');
-      }                                                                         
-    } catch (e) {                   
-      alert('拒絕失敗：' + e.message);                                          
-    }                                         
-  }         
-  
+async function rejectOrderDirectly(orderId, customerLineId) {
+  if (!confirm(`確定要拒絕訂單 ${orderId} 嗎？\n客戶將會收到無法接單的通知。`)) return;
+
+  // FIX #2: orderId was split across lines as `orde\nrId` — merged onto one line
+  const url = `${GAS_URL}?action=rejectOrder&orderId=${encodeURIComponent(orderId)}&customerLineId=${encodeURIComponent(customerLineId)}`;
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.ok) {
+      alert('已拒絕訂單，客戶已收到通知。');
+      loadOrderList();
+    } else {
+      throw new Error(data.message || '操作失敗');
+    }
+  } catch (e) {
+    alert('拒絕失敗：' + e.message);
+  }
+}
+
 async function loadSingleOrder(orderId) {
   document.getElementById('loading').style.display = 'flex';
   try {
     const res = await fetch(`${GAS_URL}?action=getOrder&orderId=${encodeURIComponent(orderId)}`);
     currentOrder = await res.json();
-    
-    // 欄位對接 (對應 GAS 回傳的 key)
+
     document.getElementById('display-name').textContent = currentOrder.name;
     document.getElementById('display-item').textContent = currentOrder.item;
     document.getElementById('display-delivery').textContent = currentOrder.delivery;
-    document.getElementById('display-date').textContent = currentOrder.recvDate || '未填寫';  
+    document.getElementById('display-date').textContent = currentOrder.recvDate || '未填寫';
+
+    // Reset weight input and total preview for every order load
+    document.getElementById('weight-input').value = '';
+    document.getElementById('total-preview').style.display = 'none';
+
     const isSauce = currentOrder.item.indexOf('罐') > -1;
     if (isSauce) {
       document.getElementById('weight-section').style.display = 'none';
       document.getElementById('sauce-section').style.display = 'block';
-      // 豆豉醬不需填重量，清除可能殘留的數值
-      document.getElementById('weight-input').value = ''; 
     } else {
       document.getElementById('weight-section').style.display = 'block';
       document.getElementById('sauce-section').style.display = 'none';
     }
-    
+
     document.getElementById('loading').style.display = 'none';
     showPage('page-weight');
+    // FIX #10: call calcTotal so sauce total appears immediately without user input
+    calcTotal();
   } catch (e) {
     alert('讀取單筆訂單失敗');
     loadOrderList();
   }
 }
 
-// 修正「處理下一筆」的邏輯
 function goBackToList() {
-  // 不要用 location.reload()，因為 URL 可能帶著舊的 orderId
-  // 改為直接初始化清單頁面並清空當前訂單狀態
   currentOrder = null;
   const url = new URL(window.location.href);
-  url.searchParams.delete('orderId'); // 清除網址上的 ID
-  window.history.replaceState({}, '', url); // 更新網址但不刷新頁面
-
+  url.searchParams.delete('orderId');
+  window.history.replaceState({}, '', url);
   showPage('page-list');
-  loadOrderList(); // 重新載入最新清單
-}  
+  loadOrderList();
+}
 
 function calcTotal() {
+  // FIX #4: guard against null currentOrder (e.g. stale oninput after navigation)
+  if (!currentOrder) return;
+
   const w = parseFloat(document.getElementById('weight-input').value) || 0;
   const isSauce = currentOrder.item.indexOf('罐') > -1;
-  
-  // 修正 1: 將 const 改為 let 才能重複計算
-  let total = 0; 
 
+  let total = 0;
   if (isSauce) {
-    // 修正 2: 豆豉醬金額判斷邏輯
     total = currentOrder.item.indexOf('大') > -1 ? 300 : 150;
   } else {
-    total = Math.round(w * 30); // 鳳梨計算
+    total = Math.round(w * 30);
   }
 
-  // 修正 3: 運費加總邏輯
-  if (currentOrder && currentOrder.delivery === '宅配到府') {
+  if (currentOrder.delivery === '宅配到府') {
     total += 150;
   }
 
   const preview = document.getElementById('total-preview');
-  // 修正 4: 顯示條件優化 (豆豉醬直接顯示，鳳梨有重量才顯示)
   preview.style.display = (isSauce || w > 0) ? 'block' : 'none';
   document.getElementById('total-amount').textContent = '$' + total.toLocaleString();
 }
 
 async function submitWeight() {
-  const weight    = document.getElementById('weight-input').value;
-  const submitBtn = document.getElementById('submit-btn') || document.querySelector('.btn-submit');
+  const weight  = document.getElementById('weight-input').value;
+  // FIX #5: use id-based lookup for both buttons instead of class querySelector
+  const submitBtn = document.getElementById('submit-btn') || document.getElementById('submit-btn-sauce');
   const isSauce   = currentOrder.item.indexOf('罐') > -1;
 
   if (!isSauce && !weight) { alert('請輸入實際重量'); return; }
@@ -358,15 +363,14 @@ async function submitWeight() {
   submitBtn.textContent = '傳送中...';
 
   const w = parseFloat(weight) || 0;
-  
-  // 修正 5: 提交時的金額計算需與 calcTotal 一致
+
   let total = 0;
   if (isSauce) {
     total = currentOrder.item.indexOf('大') > -1 ? 300 : 150;
   } else {
     total = Math.round(w * 30);
   }
-  
+
   if (currentOrder.delivery === '宅配到府') {
     total += 150;
   }
@@ -383,6 +387,7 @@ async function submitWeight() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || '更新失敗');
 
+    // FIX #11: \n renders correctly because #success-msg has white-space: pre-line
     document.getElementById('success-msg').textContent =
       currentOrder.name + ' 的訂單已更新！\n' +
       (isSauce ? '品項：豆豉醬' : '重量：' + w + ' 斤') + '　總金額：$' + total;
