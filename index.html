@@ -911,8 +911,6 @@ function goStep2() {
   const list = document.getElementById('spec-list');
   list.innerHTML = '';
   state.specId = '';
-  state.qty    = 1;
-  document.getElementById('qty-display').value = '1';
 
   prod.specs.forEach(spec => {
     const el      = document.createElement('div');
@@ -944,11 +942,9 @@ function changeQty(delta) {
     let qty   = parseInt(el.value) + delta;
     if (qty < 1) qty = 1;
     el.value  = qty;
+    state.qty = qty;
   }
-function validateQty(el) {
-    const v = parseInt(el.value);
-    el.value = (isNaN(v) || v < 1) ? 1 : Math.floor(v);
-  }   
+
 function selectDelivery(type) {
   state.delivery = type;
   document.getElementById('del-home').classList.toggle('selected',   type === 'home');
