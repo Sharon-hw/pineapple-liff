@@ -228,42 +228,39 @@ function calcTotal() {
 }
 
 async function submitWeight() {
-  const weight = document.getElementById('weight-input').value;
-  const submitBtn = document.querySelector('.btn-submit');
-  
-  const isSauce = currentOrder.item.indexOf('罐') > -1;
-  if (!isSauce && !weight) {
-    alert('請輸入實際重量');
-    return;
-  }
+  const weight    = document.getElementById('weight-input').value;
+  const submitBtn = document.getElementById('submit-btn') || document.querySelector('.btn-submit');
+  const isSauce   = currentOrder.item.indexOf('罐') > -1;
 
-  submitBtn.disabled = true;
+  if (!isSauce && !weight) { alert('請輸入實際重量'); return; }
+
+  submitBtn.disabled    = true;
   submitBtn.textContent = '傳送中...';
 
+  const w     = parseFloat(weight) || 0;
+  const total = isSauce ? 0 : Math.round(w * 30);
+
   try {
-    // 準備傳送資料
-    const params = new URLSearchParams({
-      action: 'updateWeight',
-      orderId: currentOrder.orderId,
-      weight: weight || 0,
-      customerLineId: currentOrder.customerLineId || '' // 務必帶上這個，後端推播才不會出錯
-    });
+    const res  = await fetch(
+      GAS_URL +
+      '?action=updateWeight' +
+      '&orderId='        + encodeURIComponent(currentOrder.orderId) +
+      '&weight='         + w +
+      '&total='          + total +
+      '&customerLineId=' + encodeURIComponent(currentOrder.customerLineId || '')
+    );
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || '更新失敗');
 
-    // 移除 no-cors 模式，改用標準 fetch
-    const response = await fetch(GAS_URL, {
-      method: 'POST',
-      body: params,
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
-
-    // 只要成功執行到這，就顯示成功
-    document.getElementById('success-msg').textContent = `${currentOrder.name} 的訂單已更新！`;
+    document.getElementById('success-msg').textContent =
+      currentOrder.name + ' 的訂單已更新！' +
+      (isSauce ? '' : '\n重量：' + w + ' 斤　金額：$' + total);
     showPage('page-success');
 
   } catch (e) {
     console.error('傳送錯誤:', e);
     alert('儲存失敗：' + e.message);
-    submitBtn.disabled = false;
+    submitBtn.disabled    = false;
     submitBtn.textContent = '✅ 確認送出通知';
   }
 }
