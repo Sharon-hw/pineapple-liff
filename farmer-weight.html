@@ -82,6 +82,7 @@
       <div class="info-row"><span class="info-key">客戶</span><span class="info-val" id="display-name">—</span></div>
       <div class="info-row"><span class="info-key">品項</span><span class="info-val" id="display-item">—</span></div>
       <div class="info-row"><span class="info-key">配送</span><span class="info-val" id="display-delivery">—</span></div>
+      <div class="info-row"><span class="info-key">需求時間</span><span class="info-val" id="display-date">—</span></div>      
     </div>
     
     <div id="weight-section">
@@ -251,8 +252,7 @@ async function loadSingleOrder(orderId) {
     document.getElementById('display-name').textContent = currentOrder.name;
     document.getElementById('display-item').textContent = currentOrder.item;
     document.getElementById('display-delivery').textContent = currentOrder.delivery;
-    document.getElementById('display-date').textContent = currentOrder.date;
-    
+    document.getElementById('display-date').textContent = currentOrder.recvDate || '未填寫';  
     const isSauce = currentOrder.item.indexOf('罐') > -1;
     if (isSauce) {
       document.getElementById('weight-section').style.display = 'none';
