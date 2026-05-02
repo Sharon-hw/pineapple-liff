@@ -647,7 +647,8 @@
       <div class="qty-ctrl">
         <button class="qty-btn" onclick="changeQty(-1)">−</button>
         <input type="number" class="qty-num" id="qty-display"
-         value="1" min="1" inputmode="nu
+         value="1" min="1" inputmode="numeric"                                  
+         oninput="validateQty(this)">
         <button class="qty-btn" onclick="changeQty(1)">+</button>
       </div>
     </div>
