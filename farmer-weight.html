@@ -55,6 +55,22 @@
     .page.active { display: block; }
     .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
     #success-msg { white-space: pre-line; }
+
+    /* 拒絕原因 modal */
+    #reject-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+    #reject-modal.open { display: flex; }
+    .reject-box { background: #fff; border-radius: 16px; padding: 24px 20px; width: 100%; max-width: 360px; }
+    .reject-box h3 { font-family: 'Noto Serif TC', serif; font-size: 16px; color: var(--green-dark); margin-bottom: 16px; }
+    .reject-option { width: 100%; padding: 14px; border-radius: 10px; border: 2px solid #E8DECE; background: #fff; font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 10px; text-align: left; }
+    .reject-option.selected { border-color: var(--gold); background: #FFF8EC; }
+    .reject-date-wrap { margin: 4px 0 16px; }
+    .reject-date-wrap label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; }
+    .reject-date-wrap input { width: 100%; padding: 10px 14px; border: 2px solid #E8DECE; border-radius: 10px; font-size: 15px; }
+    .reject-actions { display: flex; gap: 10px; margin-top: 4px; }
+    .reject-actions button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .btn-cancel-reject { background: #eee; color: var(--text-muted); }
+    .btn-do-reject { background: #E74C3C; color: #fff; }
+    .btn-do-reject:disabled { background: #ccc; }
   </style>
 </head>
 <body>
@@ -102,6 +118,23 @@
     <div id="sauce-section" style="display:none; text-align:center;">
       <p style="color:var(--gold); font-weight:700; margin-bottom:20px;">此品項為豆豉醬，不需秤重</p>
       <button class="btn-submit" id="submit-btn-sauce" onclick="submitWeight()">✅ 直接確認通知</button>
+    </div>
+  </div>
+</div>
+
+<!-- 拒絕原因選擇 modal -->
+<div id="reject-modal">
+  <div class="reject-box">
+    <h3>選擇拒絕原因</h3>
+    <button id="opt-stock"    class="reject-option" onclick="selectRejectReason('stock')">📦 庫存不足</button>
+    <button id="opt-distance" class="reject-option" onclick="selectRejectReason('distance')">📍 距離太遠</button>
+    <div id="reject-date-wrap" class="reject-date-wrap" style="display:none;">
+      <label>預計到貨日期</label>
+      <input type="date" id="reject-date-input" oninput="onRejectDateChange()">
+    </div>
+    <div class="reject-actions">
+      <button class="btn-cancel-reject" onclick="closeRejectModal()">取消</button>
+      <button id="btn-do-reject" class="btn-do-reject" disabled onclick="submitReject()">確認拒絕</button>
     </div>
   </div>
 </div>
@@ -169,7 +202,6 @@ async function loadOrderList() {
       return;
     }
 
-    
     container.innerHTML = '';
     data.orders.forEach(ord => {
       const card = document.createElement('div');
@@ -202,10 +234,6 @@ async function loadOrderList() {
         buttonText = '⚖️ 秤重處理';
       }
 
-      const deliveryInfo = ord.delivery === '宅配到府'
-  ? `<br>地址：${ord.recvAddr || '—'}` 
-  : '';
-      
       card.innerHTML = `
         <div class="order-header">
           <span class="order-id">${ord.orderId}</span>
@@ -213,7 +241,7 @@ async function loadOrderList() {
         </div>
         <div class="order-body">
           <b>${ord.name}</b> (${ord.delivery})<br>
-          <span style="color:var(--green-mid)">${ord.item}<br>需求時間：${formattedDate}${deliveryInfo}</span>
+          <span style="color:var(--green-mid)">${ord.item}<br>需求時間：${formattedDate}</span>
         </div>
         <div class="order-footer">
           <button id="btn-${ord.orderId}" class="btn-sm btn-weight">${buttonText}</button>
@@ -233,7 +261,7 @@ async function loadOrderList() {
 
       const rejectBtn = card.querySelector(`[id="btn-reject-${ord.orderId}"]`);
       if (rejectBtn) {
-        rejectBtn.addEventListener('click', () => rejectOrderDirectly(ord.orderId, ord.customerLineId));
+        rejectBtn.addEventListener('click', () => openRejectModal(ord.orderId, ord.customerLineId));
       }
 
       container.appendChild(card);
@@ -274,21 +302,75 @@ async function confirmOrderDirectly(orderId, customerLineId) {
   }
 }
 
-async function rejectOrderDirectly(orderId, customerLineId) {
-  if (!confirm(`確定要拒絕訂單 ${orderId} 嗎？\n客戶將會收到無法接單的通知。`)) return;
+let _rejectTarget = { orderId: null, customerLineId: null };
+let _rejectReason  = null;
 
-  const url = `${GAS_URL}?action=rejectOrder&orderId=${encodeURIComponent(orderId)}&customerLineId=${encodeURIComponent(customerLineId)}`;
+function openRejectModal(orderId, customerLineId) {
+  _rejectTarget  = { orderId, customerLineId };
+  _rejectReason  = null;
+  document.getElementById('opt-stock').classList.remove('selected');
+  document.getElementById('opt-distance').classList.remove('selected');
+  document.getElementById('reject-date-wrap').style.display = 'none';
+  document.getElementById('reject-date-input').value = '';
+  document.getElementById('btn-do-reject').disabled = true;
+  document.getElementById('reject-modal').classList.add('open');
+}
+
+function closeRejectModal() {
+  document.getElementById('reject-modal').classList.remove('open');
+}
+
+function selectRejectReason(reason) {
+  _rejectReason = reason;
+  document.getElementById('opt-stock').classList.toggle('selected', reason === 'stock');
+  document.getElementById('opt-distance').classList.toggle('selected', reason === 'distance');
+  const showDate = reason === 'stock';
+  document.getElementById('reject-date-wrap').style.display = showDate ? 'block' : 'none';
+  document.getElementById('btn-do-reject').disabled = showDate
+    ? !document.getElementById('reject-date-input').value
+    : false;
+}
+
+function onRejectDateChange() {
+  document.getElementById('btn-do-reject').disabled = !document.getElementById('reject-date-input').value;
+}
+
+async function submitReject() {
+  const { orderId, customerLineId } = _rejectTarget;
+  const rejectDate = document.getElementById('reject-date-input').value;
+
+  const confirmBtn = document.getElementById('btn-do-reject');
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = '處理中...';
+
+  // Format date as M月D日 for the message
+  let dateLabel = '';
+  if (_rejectReason === 'stock' && rejectDate) {
+    const d = new Date(rejectDate + 'T00:00:00');
+    dateLabel = (d.getMonth() + 1) + '月' + d.getDate() + '日';
+  }
+
+  let url = `${GAS_URL}?action=rejectOrder` +
+    `&orderId=${encodeURIComponent(orderId)}` +
+    `&customerLineId=${encodeURIComponent(customerLineId)}` +
+    `&reason=${encodeURIComponent(_rejectReason)}` +
+    `&rejectDate=${encodeURIComponent(dateLabel)}`;
+
   try {
-    const res = await fetch(url);
+    const res  = await fetch(url);
     const data = await res.json();
     if (data.ok) {
+      closeRejectModal();
       alert('已拒絕訂單，客戶已收到通知。');
       loadOrderList();
     } else {
-      throw new Error(data.message || data.error || JSON.stringify(data));
+      throw new Error(data.message || '操作失敗');
     }
   } catch (e) {
     alert('拒絕失敗：' + e.message);
+  } finally {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = '確認拒絕';
   }
 }
 
