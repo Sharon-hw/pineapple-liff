@@ -47,7 +47,6 @@
     .btn-submit { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--gold); font-size: 16px; font-weight: 700; color: var(--green-dark); cursor: pointer; }
 
     #loading { position: fixed; inset: 0; background: var(--cream); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-    /* FIX #CSS: added missing @keyframes for loading animation */
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
       50%       { transform: translateY(-12px); }
@@ -55,7 +54,6 @@
     .page { display: none; }
     .page.active { display: block; }
     .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
-    /* FIX #11: render \n as visible line break in success message */
     #success-msg { white-space: pre-line; }
   </style>
 </head>
@@ -103,7 +101,6 @@
 
     <div id="sauce-section" style="display:none; text-align:center;">
       <p style="color:var(--gold); font-weight:700; margin-bottom:20px;">此品項為豆豉醬，不需秤重</p>
-      <!-- FIX #5: added id so submitWeight can find the correct button -->
       <button class="btn-submit" id="submit-btn-sauce" onclick="submitWeight()">✅ 直接確認通知</button>
     </div>
   </div>
@@ -123,22 +120,21 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbxHIplbnb_g7zv85KkYsuKQ
 let currentOrder = null;
 
 async function initLiff() {
-  const loadingEl = document.getElementById('loading');                              
- const loadingText = loadingEl.querySelector('.loading-text');                      
- loadingText.textContent = '初始化 LIFF…';   
+  const loadingEl = document.getElementById('loading');
+  const loadingText = loadingEl.querySelector('.loading-text');
+  loadingText.textContent = '初始化 LIFF…';
   try {
-    await Promise.race([                                                             
- liff.init({ liffId: FARMER_LIFF_ID }),                                         
-new Promise((_, reject) =>                                                     
-setTimeout(() => reject(new Error('LIFF init 逾時（超過 15 秒），請確認網路或
-  LIFF ID 是否正確')), 15000)                                                         
-   )                                                                              
- ]);                                                                              
-                                                                                    
- loadingText.textContent = '確認登入狀態…'; 
+    await Promise.race([
+      liff.init({ liffId: FARMER_LIFF_ID }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('LIFF init 逾時，請確認網路或 LIFF ID 是否正確')), 15000)
+      )
+    ]);
+
+    loadingText.textContent = '確認登入狀態…';
     if (!liff.isLoggedIn()) { liff.login(); return; }
 
-    loadingText.textContent = '讀取農場資料中…'; 
+    loadingText.textContent = '讀取農場資料中…';
     const urlParams = new URLSearchParams(window.location.search);
     const orderId = urlParams.get('orderId');
 
@@ -148,8 +144,8 @@ setTimeout(() => reject(new Error('LIFF init 逾時（超過 15 秒），請確�
       loadOrderList();
     }
   } catch (err) {
-     loadingEl.style.display = 'none';                                                
-     alert('載入失敗：' + err.message); 
+    loadingEl.style.display = 'none';
+    alert('載入失敗：' + err.message);
   }
 }
 
@@ -157,9 +153,6 @@ async function loadOrderList() {
   const container = document.getElementById('order-container');
   container.innerHTML = '<div class="empty-state">讀取中...</div>';
 
-  // FIX #1 & #3: removed broken duplicate AbortController block and incomplete
-  // `document.getElementByI` statement; kept single clean fetch with proper timeout
-  // FIX #12: added AbortController so hung GAS requests don't freeze the UI
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), 10000);
 
@@ -225,8 +218,6 @@ async function loadOrderList() {
         </div>
       `;
 
-      // FIX #9: use addEventListener instead of inline onclick to avoid quote-escaping
-      // and XSS risks with dynamic order IDs / customer IDs
       card.querySelector(`#btn-${ord.orderId}`).addEventListener('click', () => {
         if (ord.status === '待確認') {
           confirmOrderDirectly(ord.orderId, ord.customerLineId);
@@ -246,15 +237,12 @@ async function loadOrderList() {
     clearTimeout(tid);
     document.getElementById('loading').style.display = 'none';
     showPage('page-list');
-    const errMsg = e.name === 'AbortError' ? '連線逾時（GAS 超過 10 秒未回
-     +應）' : `連線 GAS 發生錯誤：${e.message}`;                                
-    container.innerHTML = `<div class="empty-state">${errMsg}</div>`;     
-    }
-
+    const errMsg = e.name === 'AbortError' ? '連線逾時（GAS 超過 10 秒未回應）' : `連線 GAS 發生錯誤：${e.message}`;
+    container.innerHTML = `<div class="empty-state">${errMsg}</div>`;
+  }
 }
 
 async function confirmOrderDirectly(orderId, customerLineId) {
-  // FIX #8: check confirm before accessing btn, and guard against null btn
   if (!confirm(`確定要確認訂單 ${orderId} 嗎？`)) return;
   const btn = document.getElementById(`btn-${orderId}`);
   if (!btn) return;
@@ -284,7 +272,6 @@ async function confirmOrderDirectly(orderId, customerLineId) {
 async function rejectOrderDirectly(orderId, customerLineId) {
   if (!confirm(`確定要拒絕訂單 ${orderId} 嗎？\n客戶將會收到無法接單的通知。`)) return;
 
-  // FIX #2: orderId was split across lines as `orde\nrId` — merged onto one line
   const url = `${GAS_URL}?action=rejectOrder&orderId=${encodeURIComponent(orderId)}&customerLineId=${encodeURIComponent(customerLineId)}`;
   try {
     const res = await fetch(url);
@@ -311,7 +298,6 @@ async function loadSingleOrder(orderId) {
     document.getElementById('display-delivery').textContent = currentOrder.delivery;
     document.getElementById('display-date').textContent = currentOrder.recvDate || '未填寫';
 
-    // Reset weight input and total preview for every order load
     document.getElementById('weight-input').value = '';
     document.getElementById('total-preview').style.display = 'none';
 
@@ -326,7 +312,6 @@ async function loadSingleOrder(orderId) {
 
     document.getElementById('loading').style.display = 'none';
     showPage('page-weight');
-    // FIX #10: call calcTotal so sauce total appears immediately without user input
     calcTotal();
   } catch (e) {
     alert('讀取單筆訂單失敗');
@@ -344,7 +329,6 @@ function goBackToList() {
 }
 
 function calcTotal() {
-  // FIX #4: guard against null currentOrder (e.g. stale oninput after navigation)
   if (!currentOrder) return;
 
   const w = parseFloat(document.getElementById('weight-input').value) || 0;
@@ -367,8 +351,7 @@ function calcTotal() {
 }
 
 async function submitWeight() {
-  const weight  = document.getElementById('weight-input').value;
-  // FIX #5: use id-based lookup for both buttons instead of class querySelector
+  const weight    = document.getElementById('weight-input').value;
   const submitBtn = document.getElementById('submit-btn') || document.getElementById('submit-btn-sauce');
   const isSauce   = currentOrder.item.indexOf('罐') > -1;
 
@@ -402,7 +385,6 @@ async function submitWeight() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || '更新失敗');
 
-    // FIX #11: \n renders correctly because #success-msg has white-space: pre-line
     document.getElementById('success-msg').textContent =
       currentOrder.name + ' 的訂單已更新！\n' +
       (isSauce ? '品項：豆豉醬' : '重量：' + w + ' 斤') + '　總金額：$' + total;
