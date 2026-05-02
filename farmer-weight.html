@@ -131,6 +131,7 @@ async function initLiff() {
       loadOrderList();
     }
   } catch (err) {
+    document.getElementById('loading').style.display = 'none';
     alert('LIFF 載入失敗: ' + err.message);
   }
 }
@@ -140,6 +141,14 @@ async function loadOrderList() {
   container.innerHTML = '<div class="empty-state">讀取中...</div>';
   
   try {
+    const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 10000);  // 10 秒逾時    
+      const res  = await fetch(`${GAS_URL}?action=getPendingOrders`, { signal:
+  controller.signal });                                                         
+      clearTimeout(tid);            
+      const data = await res.json();                                            
+      document.getElementByI
+    
     const res = await fetch(`${GAS_URL}?action=getPendingOrders`);
     const data = await res.json();
     document.getElementById('loading').style.display = 'none';
@@ -217,6 +226,8 @@ async function loadOrderList() {
       container.appendChild(card);
     });
   } catch (e) {
+    document.getElementById('loading').style.display = 'none';  // ← 加       
+      showPage('page-list');  
     container.innerHTML = '<div class="empty-state">連線 GAS 發生錯誤</div>';
   }
 }
