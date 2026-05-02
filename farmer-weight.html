@@ -280,7 +280,7 @@ async function rejectOrderDirectly(orderId, customerLineId) {
       alert('已拒絕訂單，客戶已收到通知。');
       loadOrderList();
     } else {
-      throw new Error(data.message || '操作失敗');
+      throw new Error(data.message || data.error || JSON.stringify(data));
     }
   } catch (e) {
     alert('拒絕失敗：' + e.message);
