@@ -154,10 +154,24 @@ async function loadOrderList() {
       const isSauce = ord.item.includes('罐');
       const needsWeight = !ord.weight && !isSauce;
       
+      // --- 訂單狀態呈現邏輯 ---
+      // 若狀態為「待確認」，顯示為「待確認」
+      // 若狀態為「已確認」，呈現為「待秤重」
+      let displayStatus = '待處理';
+      let badgeClass = 'status-wait';
+      
+      if (ord.status === '待確認') {
+        displayStatus = '待確認';
+        badgeClass = 'status-confirming'; // 您可以在 CSS 增加此樣式
+      } else if (ord.status === '已確認') {
+        displayStatus = '待秤重';
+        badgeClass = 'status-weighting'; 
+      }
+      
       card.innerHTML = `
         <div class="order-header">
           <span class="order-id">${ord.orderId}</span>
-          <span class="status-badge ${needsWeight ? 'status-wait' : ''}">${needsWeight ? '待秤重' : '待確認'}</span>
+          <span class="status-badge ${badgeClass}">${displayStatus}</span>
         </div>
         <div class="order-body">
           <b>${ord.name}</b> (${ord.delivery})<br>
@@ -165,7 +179,7 @@ async function loadOrderList() {
         </div>
         <div class="order-footer">
           <button class="btn-sm btn-weight" onclick="loadSingleOrder('${ord.orderId}')">
-            ${needsWeight ? '⚖️ 秤重處理' : '👉 確認處理'}
+            ${displayStatus === '待確認' ? '👉 確認處理' : '⚖️ 秤重處理'}
           </button>
         </div>
       `;
@@ -221,7 +235,15 @@ function goBackToList() {
 
 function calcTotal() {
   const w = parseFloat(document.getElementById('weight-input').value) || 0;
+  const isSauce = currentOrder.item.indexOf('罐') > -1;
   const total = Math.round(w * 30); // 假設鳳梨 30元/斤
+  if (isSauce) {
+    total = currentOrder.item.indexOf('大') > -1 ? 300 : 150;
+  }
+  // 若配送方式為宅配到府，金額加總應為 重量*30 + 150
+  if (currentOrder && currentOrder.delivery === '宅配到府') {
+    total += 150;
+  }
   const preview = document.getElementById('total-preview');
   preview.style.display = w > 0 ? 'block' : 'none';
   document.getElementById('total-amount').textContent = '$' + total.toLocaleString();
@@ -238,7 +260,11 @@ async function submitWeight() {
   submitBtn.textContent = '傳送中...';
 
   const w     = parseFloat(weight) || 0;
-  const total = isSauce ? 0 : Math.round(w * 30);
+  // 提交時同樣計算運費
+  let total = isSauce ? 0 : Math.round(w * 30);
+  if (!isSauce && currentOrder.delivery === '宅配到府') {
+    total += 150;
+  }
 
   try {
     const res  = await fetch(
