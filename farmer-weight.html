@@ -26,6 +26,8 @@
     .order-footer { margin-top: 12px; display: flex; gap: 8px; }
     .btn-sm { flex: 1; padding: 8px; border-radius: 8px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; }
     .btn-weight { background: var(--gold); color: var(--green-dark); }
+    .status-confirming { background: #E1F5FE; color: #0288D1; } /* 淺藍色 - 待確認 */
+    .status-weighting { background: #FFF9C4; color: #FBC02D; }  /* 淺黃色 - 待秤重 */
     
     /* 修正原本未閉合的 CSS */
     .header { background: var(--green-dark); padding: 20px 20px 28px; position: relative; overflow: hidden; }
@@ -236,16 +238,25 @@ function goBackToList() {
 function calcTotal() {
   const w = parseFloat(document.getElementById('weight-input').value) || 0;
   const isSauce = currentOrder.item.indexOf('罐') > -1;
-  const total = Math.round(w * 30); // 假設鳳梨 30元/斤
+  
+  // 修正 1: 將 const 改為 let 才能重複計算
+  let total = 0; 
+
   if (isSauce) {
+    // 修正 2: 豆豉醬金額判斷邏輯
     total = currentOrder.item.indexOf('大') > -1 ? 300 : 150;
+  } else {
+    total = Math.round(w * 30); // 鳳梨計算
   }
-  // 若配送方式為宅配到府，金額加總應為 重量*30 + 150
+
+  // 修正 3: 運費加總邏輯
   if (currentOrder && currentOrder.delivery === '宅配到府') {
     total += 150;
   }
+
   const preview = document.getElementById('total-preview');
-  preview.style.display = w > 0 ? 'block' : 'none';
+  // 修正 4: 顯示條件優化 (豆豉醬直接顯示，鳳梨有重量才顯示)
+  preview.style.display = (isSauce || w > 0) ? 'block' : 'none';
   document.getElementById('total-amount').textContent = '$' + total.toLocaleString();
 }
 
@@ -259,15 +270,22 @@ async function submitWeight() {
   submitBtn.disabled    = true;
   submitBtn.textContent = '傳送中...';
 
-  const w     = parseFloat(weight) || 0;
-  // 提交時同樣計算運費
-  let total = isSauce ? 0 : Math.round(w * 30);
-  if (!isSauce && currentOrder.delivery === '宅配到府') {
+  const w = parseFloat(weight) || 0;
+  
+  // 修正 5: 提交時的金額計算需與 calcTotal 一致
+  let total = 0;
+  if (isSauce) {
+    total = currentOrder.item.indexOf('大') > -1 ? 300 : 150;
+  } else {
+    total = Math.round(w * 30);
+  }
+  
+  if (currentOrder.delivery === '宅配到府') {
     total += 150;
   }
 
   try {
-    const res  = await fetch(
+    const res = await fetch(
       GAS_URL +
       '?action=updateWeight' +
       '&orderId='        + encodeURIComponent(currentOrder.orderId) +
@@ -279,8 +297,8 @@ async function submitWeight() {
     if (!data.ok) throw new Error(data.error || '更新失敗');
 
     document.getElementById('success-msg').textContent =
-      currentOrder.name + ' 的訂單已更新！' +
-      (isSauce ? '' : '\n重量：' + w + ' 斤　金額：$' + total);
+      currentOrder.name + ' 的訂單已更新！\n' +
+      (isSauce ? '品項：豆豉醬' : '重量：' + w + ' 斤') + '　總金額：$' + total;
     showPage('page-success');
 
   } catch (e) {
