@@ -385,6 +385,8 @@ async function submitWeight() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || '更新失敗');
 
+    submitBtn.disabled    = false;
+    submitBtn.textContent = isSauce ? '✅ 直接確認通知' : '✅ 確認送出通知';
     document.getElementById('success-msg').textContent =
       currentOrder.name + ' 的訂單已更新！\n' +
       (isSauce ? '品項：豆豉醬' : '重量：' + w + ' 斤') + '　總金額：$' + total;
