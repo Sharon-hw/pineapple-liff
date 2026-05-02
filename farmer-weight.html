@@ -234,6 +234,10 @@ async function loadOrderList() {
         buttonText = '⚖️ 秤重處理';
       }
 
+      const deliveryInfo = ord.delivery === '宅配到府'
+  ? `<br>地址：${ord.recvAddr || '—'}` 
+  : '';
+      
       card.innerHTML = `
         <div class="order-header">
           <span class="order-id">${ord.orderId}</span>
@@ -241,7 +245,7 @@ async function loadOrderList() {
         </div>
         <div class="order-body">
           <b>${ord.name}</b> (${ord.delivery})<br>
-          <span style="color:var(--green-mid)">${ord.item}<br>需求時間：${formattedDate}</span>
+          <span style="color:var(--green-mid)">${ord.item}<br>需求時間：${formattedDate}${deliveryInfo}</span>
         </div>
         <div class="order-footer">
           <button id="btn-${ord.orderId}" class="btn-sm btn-weight">${buttonText}</button>
