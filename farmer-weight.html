@@ -234,8 +234,11 @@ async function loadOrderList() {
     clearTimeout(tid);
     document.getElementById('loading').style.display = 'none';
     showPage('page-list');
-    container.innerHTML = '<div class="empty-state">連線 GAS 發生錯誤</div>';
-  }
+    const errMsg = e.name === 'AbortError' ? '連線逾時（GAS 超過 10 秒未回
+     +應）' : `連線 GAS 發生錯誤：${e.message}`;                                
+    container.innerHTML = `<div class="empty-state">${errMsg}</div>`;     
+    }
+
 }
 
 async function confirmOrderDirectly(orderId, customerLineId) {
