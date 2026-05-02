@@ -153,22 +153,27 @@ async function loadOrderList() {
     data.orders.forEach(ord => {
       const card = document.createElement('div');
       card.className = 'order-card';
-      const isSauce = ord.item.includes('罐');
-      const needsWeight = !ord.weight && !isSauce;
       
       // --- 訂單狀態呈現邏輯 ---
       // 若狀態為「待確認」，顯示為「待確認」
       // 若狀態為「已確認」，呈現為「待秤重」
       let displayStatus = '待處理';
       let badgeClass = 'status-wait';
-      
+      let buttonText = '👉 確認處理';
+      // 決定按鈕行為：是直接確認還是進入秤重頁
+      let clickAction = `confirmOrderDirectly('${ord.orderId}', '${ord.customerLineId}')`;
+
       if (ord.status === '待確認') {
-        displayStatus = '待確認';
-        badgeClass = 'status-confirming'; // 您可以在 CSS 增加此樣式
-      } else if (ord.status === '已確認') {
-        displayStatus = '待秤重';
-        badgeClass = 'status-weighting'; 
-      }
+    displayStatus = '待確認';
+    badgeClass = 'status-confirming';
+    buttonText = '👉 確認處理';
+    clickAction = `confirmOrderDirectly('${ord.orderId}', '${ord.customerLineId}')`; // 觸發確認流程
+  } else if (ord.status === '已確認') {
+    displayStatus = '待秤重';
+    badgeClass = 'status-weighting';
+    buttonText = '⚖️ 秤重處理';
+    clickAction = `loadSingleOrder('${ord.orderId}')`; // 進入秤重頁面
+  }
       
       card.innerHTML = `
         <div class="order-header">
@@ -180,10 +185,10 @@ async function loadOrderList() {
           <span style="color:var(--green-mid)">${ord.item} ${ord.spec} x${ord.qty}</span>
         </div>
         <div class="order-footer">
-          <button class="btn-sm btn-weight" onclick="loadSingleOrder('${ord.orderId}')">
-            ${displayStatus === '待確認' ? '👉 確認處理' : '⚖️ 秤重處理'}
-          </button>
-        </div>
+      <button id="btn-${ord.orderId}" class="btn-sm btn-weight" onclick="${clickAction}">
+        ${buttonText}
+      </button>
+    </div>
       `;
       container.appendChild(card);
     });
@@ -192,6 +197,34 @@ async function loadOrderList() {
   }
 }
 
+async function confirmOrderDirectly(orderId, customerLineId) {
+  // 防止重複點擊
+  const btn = document.getElementById(`btn-${orderId}`);
+  if (!confirm(`確定要確認訂單 ${orderId} 嗎？`)) return;
+
+  btn.disabled = true;
+  btn.textContent = '處理中...';
+
+  try {
+    // 對接 GAS 現有的 action=confirmOrder
+    const url = `${GAS_URL}?action=confirmOrder&orderId=${encodeURIComponent(orderId)}&customerLineId=${encodeURIComponent(customerLineId)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.ok) {
+      alert('訂單已確認，客戶已收到通知！');
+      loadOrderList(); // 重新整理清單，該筆會變成「待秤重」
+    } else {
+      throw new Error(data.message || '更新失敗');
+    }
+  } catch (e) {
+    console.error('確認訂單發生錯誤:', e);
+    alert('確認失敗，請檢查網路連線或 GAS 權限。');
+    btn.disabled = false;
+    btn.textContent = '👉 確認處理';
+  }
+}
+  
 async function loadSingleOrder(orderId) {
   document.getElementById('loading').style.display = 'flex';
   try {
